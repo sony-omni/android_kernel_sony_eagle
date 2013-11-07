@@ -161,6 +161,9 @@ struct msm_vidc_s3d_frame_packing_payload {
 	unsigned int fpa_repetition_period;
 	unsigned int fpa_extension_flag;
 };
+struct msm_vidc_frame_qp_payload {
+	unsigned int frame_qp;
+};
 
 struct msm_vidc_stream_userdata_payload {
 	unsigned int type;
