@@ -1563,11 +1563,7 @@ static int get_prop_bms_charge_counter(struct qpnp_bms_chip *chip)
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
-#ifndef CONFIG_SONY_EAGLE
-	read_cc_raw(chip, &cc_raw, false);
-#else
 	read_cc_raw(chip, &cc_raw, CC);
-#endif
 	unlock_output_data(chip);
 	mutex_unlock(&chip->bms_output_lock);
 
@@ -1581,11 +1577,7 @@ static int get_prop_bms_charge_counter_shadow(struct qpnp_bms_chip *chip)
 
 	mutex_lock(&chip->bms_output_lock);
 	lock_output_data(chip);
-#ifndef CONFIG_SONY_EAGLE
-	read_cc_raw(chip, &cc_raw, true);
-#else
 	read_cc_raw(chip, &cc_raw, SHDW_CC);
-#endif
 	unlock_output_data(chip);
 	mutex_unlock(&chip->bms_output_lock);
 
