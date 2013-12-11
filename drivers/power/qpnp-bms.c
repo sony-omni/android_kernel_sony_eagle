@@ -1074,22 +1074,14 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 			chip->base + BMS1_OCV_FOR_SOC_DATA0, 2);
 	if (rc) {
 		pr_err("Error reading ocv: rc = %d\n", rc);
-#ifndef CONFIG_SONY_EAGLE
-		return -ENXIO;
-#else
 		goto param_err;
-#endif
 	}
 
 	rc = read_cc_raw(chip, &raw->cc, CC);
 	rc = read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
 	if (rc) {
 		pr_err("Failed to read raw cc data, rc = %d\n", rc);
-#ifndef CONFIG_SONY_EAGLE
-		return rc;
-#else
 		goto param_err;
-#endif
 	}
 
 	unlock_output_data(chip);
@@ -1158,12 +1150,10 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 	pr_debug("cc_raw= 0x%llx\n", raw->cc);
 	return 0;
 
-#ifdef CONFIG_SONY_EAGLE
 param_err:
 	unlock_output_data(chip);
 	mutex_unlock(&chip->bms_output_lock);
 	return rc;
-#endif
 }
 
 static int calculate_pc(struct qpnp_bms_chip *chip, int ocv_uv,
