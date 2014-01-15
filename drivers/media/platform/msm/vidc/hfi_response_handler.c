@@ -420,6 +420,14 @@ static inline void copy_cap_prop(
 	case HFI_CAPABILITY_BITRATE:
 		out = &sess_init_done->bitrate;
 		break;
+
+	case HFI_CAPABILITY_ENC_LTR_COUNT:
+		out = &sess_init_done->ltr_count;
+		break;
+
+	case HFI_CAPABILITY_HIER_P_NUM_ENH_LAYERS:
+		out = &sess_init_done->hier_p;
+		break;
 	}
 
 	if (in && out) {
