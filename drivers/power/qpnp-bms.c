@@ -907,54 +907,32 @@ static int get_simultaneous_batt_v_and_i(struct qpnp_bms_chip *chip,
 	return 0;
 }
 
-#ifdef CONFIG_SONY_EAGLE
 static int get_rbatt(struct qpnp_bms_chip *chip,
- 									int soc_rbatt_mohm, int batt_temp)
+					int soc_rbatt_mohm, int batt_temp)
 {
 	int rbatt_mohm, scalefactor;
 
 	rbatt_mohm = chip->default_rbatt_mohm;
- 	if (chip->rbatt_sf_lut == NULL) {
- 		pr_debug("RBATT = %d\n", rbatt_mohm);
- 		return rbatt_mohm;
- 	}
- 	/* Convert the batt_temp to DegC from deciDegC */
- 	scalefactor = interpolate_scalingfactor(chip->rbatt_sf_lut,
- 										batt_temp, soc_rbatt_mohm);
+	if (chip->rbatt_sf_lut == NULL)  {
+		pr_debug("RBATT = %d\n", rbatt_mohm);
+		return rbatt_mohm;
+	}
+	/* Convert the batt_temp to DegC from deciDegC */
+	scalefactor = interpolate_scalingfactor(chip->rbatt_sf_lut,
+						batt_temp, soc_rbatt_mohm);
 	rbatt_mohm = (rbatt_mohm * scalefactor) / 100;
 
 	rbatt_mohm += chip->r_conn_mohm;
- 	rbatt_mohm += chip->rbatt_capacitive_mohm;
- 	return rbatt_mohm;
+	rbatt_mohm += chip->rbatt_capacitive_mohm;
+	return rbatt_mohm;
 }
-#endif
 
-#ifndef CONFIG_SONY_EAGLE
-static int estimate_ocv(struct qpnp_bms_chip *chip)
-{
-	int ibat_ua, vbat_uv, ocv_est_uv;
-	int rc;
-	int rbatt_mohm = chip->default_rbatt_mohm + chip->r_conn_mohm
-					+ chip->rbatt_capacitive_mohm;
-
-	rc = get_simultaneous_batt_v_and_i(chip, &ibat_ua, &vbat_uv);
-	if (rc) {
-		pr_err("simultaneous failed rc = %d\n", rc);
-		return rc;
-	}
-
-	ocv_est_uv = vbat_uv + (ibat_ua * rbatt_mohm) / 1000;
-	pr_debug("estimated pon ocv = %d\n", ocv_est_uv);
-	return ocv_est_uv;
-}
-#else
-#define DEFAULT_RBATT_SOC 50
-static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp) 
+#define DEFAULT_RBATT_SOC	50
+static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp)
 {
 	int ibat_ua, vbat_uv, ocv_est_uv, rbatt_mohm, rc;
 
 	rbatt_mohm = get_rbatt(chip, DEFAULT_RBATT_SOC, batt_temp);
-
 	rc = get_simultaneous_batt_v_and_i(chip, &ibat_ua, &vbat_uv);
 	if (rc) {
 		pr_err("simultaneous failed rc = %d\n", rc);
@@ -962,14 +940,10 @@ static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp)
 	}
 
 	ocv_est_uv = vbat_uv + (ibat_ua * rbatt_mohm) / 1000;
-
 	pr_debug("estimated pon ocv = %d, vbat_uv = %d ibat_ua = %d rbatt_mohm = %d\n",
-					ocv_est_uv, vbat_uv, ibat_ua, rbatt_mohm);
-	
+			ocv_est_uv, vbat_uv, ibat_ua, rbatt_mohm);
 	return ocv_est_uv;
-	
 }
-#endif
 
 #define MIN_IAVG_MA 250
 static void reset_for_new_battery(struct qpnp_bms_chip *chip, int batt_temp)
@@ -1092,20 +1066,9 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		pr_debug("PON_OCV_UV = %d, cc = %llx\n",
 				chip->last_ocv_uv, raw->cc);
 		warm_reset = qpnp_pon_is_warm_reset();
-#ifndef CONFIG_SONY_EAGLE
-		if (raw->last_good_ocv_uv < MIN_OCV_UV
-				|| warm_reset > 0) {
-#else
 		if (raw->last_good_ocv_uv < MIN_OCV_UV || warm_reset > 0) {
-#endif
-		/*[CCI] E- Bug#2723 SR patches Jonny_Chan*/
 			pr_debug("OCV is stale or bad, estimating new OCV.\n");
-#ifndef CONFIG_SONY_EAGLE
-			chip->last_ocv_uv = estimate_ocv(chip);
-#else
 			chip->last_ocv_uv = estimate_ocv(chip, batt_temp);
-#endif
-			/*[CCI] E- Bug#2723 SR patches Jonny_Chan*/
 			raw->last_good_ocv_uv = chip->last_ocv_uv;
 			reset_cc(chip, CLEAR_CC | CLEAR_SHDW_CC);
 			pr_debug("New PON_OCV_UV = %d, cc = %llx\n",
@@ -1273,29 +1236,6 @@ static int calculate_cc(struct qpnp_bms_chip *chip, int64_t cc,
 		return *software_counter + cc_uah;
 	}
 }
-
-#ifndef CONFIG_SONY_EAGLE
-static int get_rbatt(struct qpnp_bms_chip *chip,
-					int soc_rbatt_mohm, int batt_temp)
-{
-	int rbatt_mohm, scalefactor;
-
-	rbatt_mohm = chip->default_rbatt_mohm;
-	if (chip->rbatt_sf_lut == NULL)  {
-		pr_debug("RBATT = %d\n", rbatt_mohm);
-		return rbatt_mohm;
-	}
-	/* Convert the batt_temp to DegC from deciDegC */
-	scalefactor = interpolate_scalingfactor(chip->rbatt_sf_lut,
-						batt_temp, soc_rbatt_mohm);
-	rbatt_mohm = (rbatt_mohm * scalefactor) / 100;
-
-	rbatt_mohm += chip->r_conn_mohm;
-	rbatt_mohm += chip->rbatt_capacitive_mohm;
-	return rbatt_mohm;
-}
-#endif
-/*[CCI] E- Bug#2723 SR patches Jonny_Chan*/
 
 #define IAVG_MINIMAL_TIME	2
 static void calculate_iavg(struct qpnp_bms_chip *chip, int cc_uah,
