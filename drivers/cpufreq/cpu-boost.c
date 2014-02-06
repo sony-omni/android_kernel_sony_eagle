@@ -155,6 +155,7 @@ static void run_boost_migration(unsigned int cpu)
 	if (ret)
 		return;
 
+<<<<<<< HEAD
 	req_freq = max((dest_policy.max * s->task_load) / 100,
 					src_policy.cur);
 
@@ -169,6 +170,34 @@ static void run_boost_migration(unsigned int cpu)
 	cancel_delayed_work_sync(&s->boost_rem);
 
 	s->boost_min = req_freq;
+=======
+	ret = cpufreq_get_policy(&src_policy, src_cpu);
+	if (ret)
+		return;
+
+	ret = cpufreq_get_policy(&dest_policy, dest_cpu);
+	if (ret)
+		return;
+
+	if (dest_policy.cur >= src_policy.cur ) {
+		pr_debug("No sync. CPU%d@%dKHz >= CPU%d@%dKHz\n",
+			 dest_cpu, dest_policy.cur, src_cpu, src_policy.cur);
+		return;
+	}
+
+	if (sync_threshold && (dest_policy.cur >= sync_threshold))
+		return;
+
+	cancel_delayed_work_sync(&s->boost_rem);
+	if (sync_threshold) {
+		if (src_policy.cur >= sync_threshold)
+			s->boost_min = sync_threshold;
+		else
+			s->boost_min = src_policy.cur;
+	} else {
+		s->boost_min = src_policy.cur;
+	}
+>>>>>>> b949f3b... cpufreq: cpu-boost: Use hotplug thread infrastructure
 
 	/* Force policy re-evaluation to trigger adjust notifier. */
 	get_online_cpus();
