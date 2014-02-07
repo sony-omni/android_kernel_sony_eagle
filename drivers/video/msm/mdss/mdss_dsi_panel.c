@@ -292,6 +292,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 /* [Flamingo] LCM driver porting */
 	int i, rc = 0;
 #endif
+	static bool gpio_request_done;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -314,6 +315,15 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 
 	pr_debug("%s: enable = %d\n", __func__, enable);
 	pinfo = &(ctrl_pdata->panel_data.panel_info);
+
+	if (!gpio_request_done && enable) {
+		rc = mdss_dsi_request_gpios(ctrl_pdata);
+		if (rc) {
+			pr_err("gpio request failed\n");
+			return rc;
+		}
+		gpio_request_done = true;
+	}
 
 	if (enable) {
 		rc = mdss_dsi_request_gpios(ctrl_pdata);
@@ -400,6 +410,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		gpio_free(ctrl_pdata->rst_gpio);
 		if (gpio_is_valid(ctrl_pdata->mode_gpio))
 			gpio_free(ctrl_pdata->mode_gpio);
+		gpio_request_done = false;
 	}
 #endif
 	return rc;
