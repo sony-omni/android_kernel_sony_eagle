@@ -179,24 +179,22 @@ static void run_boost_migration(unsigned int cpu)
 	if (ret)
 		return;
 
-	if (src_policy.min == src_policy.cur &&
-			src_policy.min <= dest_policy.min) {
-		pr_debug("No sync. CPU%d@%dKHz == min freq@%dKHz\n",
-			src_cpu, src_policy.cur,
-			src_policy.min);
+	if (src_policy.min == src_policy.cpuinfo.min_freq) {
+		pr_debug("No sync. Source CPU%d@%dKHz at min freq\n",
+				src_cpu, src_policy.cur);
 		return;
 	}
 
 	cancel_delayed_work_sync(&s->boost_rem);
-	if (sync_threshold) {
-		if (src_policy.cur >= sync_threshold)
-			s->boost_min = sync_threshold;
-		else
-			s->boost_min = src_policy.cur;
-	} else {
+	if (sync_threshold)
+		s->boost_min = min(sync_threshold, src_policy.cur);
+	else
 		s->boost_min = src_policy.cur;
+<<<<<<< HEAD
 	}
 >>>>>>> b949f3b... cpufreq: cpu-boost: Use hotplug thread infrastructure
+=======
+>>>>>>> 5edeff3... cpufreq: cpu-boost: Re-issue boosts above minimum frequency
 
 	/* Force policy re-evaluation to trigger adjust notifier. */
 	get_online_cpus();
