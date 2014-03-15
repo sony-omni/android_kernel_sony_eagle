@@ -141,6 +141,7 @@ static void run_boost_migration(unsigned int cpu)
 	struct cpufreq_policy src_policy;
 	unsigned long flags;
 	unsigned int req_freq;
+<<<<<<< HEAD
 
 	spin_lock_irqsave(&s->lock, flags);
 	s->pending = false;
@@ -150,6 +151,8 @@ static void run_boost_migration(unsigned int cpu)
 	ret = cpufreq_get_policy(&src_policy, src_cpu);
 	if (ret)
 		return;
+=======
+>>>>>>> 37c1b8c... cpufreq: cpu-boost: Introduce scheduler assisted load based syncs
 
 	ret = cpufreq_get_policy(&dest_policy, dest_cpu);
 	if (ret)
@@ -179,14 +182,16 @@ static void run_boost_migration(unsigned int cpu)
 	if (ret)
 		return;
 
-	if (src_policy.min == src_policy.cpuinfo.min_freq) {
-		pr_debug("No sync. Source CPU%d@%dKHz at min freq\n",
-				src_cpu, src_policy.cur);
+	req_freq = max((dest_policy.max * s->task_load) / 100,
+					src_policy.cur);
+
+	if (req_freq <= dest_policy.cpuinfo.min_freq) {
+		pr_debug("No sync. Sync Freq:%u\n", req_freq);
 		return;
 	}
 
-	cancel_delayed_work_sync(&s->boost_rem);
 	if (sync_threshold)
+<<<<<<< HEAD
 		s->boost_min = min(sync_threshold, src_policy.cur);
 	else
 		s->boost_min = src_policy.cur;
@@ -195,6 +200,13 @@ static void run_boost_migration(unsigned int cpu)
 >>>>>>> b949f3b... cpufreq: cpu-boost: Use hotplug thread infrastructure
 =======
 >>>>>>> 5edeff3... cpufreq: cpu-boost: Re-issue boosts above minimum frequency
+=======
+		req_freq = min(sync_threshold, req_freq);
+
+	cancel_delayed_work_sync(&s->boost_rem);
+
+	s->boost_min = req_freq;
+>>>>>>> 37c1b8c... cpufreq: cpu-boost: Introduce scheduler assisted load based syncs
 
 	/* Force policy re-evaluation to trigger adjust notifier. */
 	get_online_cpus();
@@ -229,9 +241,12 @@ static int boost_migration_notify(struct notifier_block *nb,
 		pr_err("cpu-boost:Invalid load: %d\n", mnd->load);
 		return NOTIFY_OK;
 	}
+<<<<<<< HEAD
 
 	if (!load_based_syncs && (mnd->src_cpu == mnd->dest_cpu))
 		return NOTIFY_OK;
+=======
+>>>>>>> 37c1b8c... cpufreq: cpu-boost: Introduce scheduler assisted load based syncs
 
 	if (!boost_ms)
 		return NOTIFY_OK;
