@@ -81,14 +81,14 @@ enum color_fmts {
 
 static inline unsigned int VENUS_EXTRADATA_SIZE(int width, int height)
 {
-	(void)height;
-	(void)width;
+        (void)height;
+        (void)width;
 
-	/*
-	 * In the future, calculate the size based on the w/h but just
-	 * hardcode it for now since 8K satisfies all current usecases.
-	 */
-	return 8 * 1024;
+        /*
+         * In the future, calculate the size based on the w/h but just
+         * hardcode it for now since 8K satisfies all current usecases.
+         */
+        return 8 * 1024;
 }
 
 static inline unsigned int VENUS_Y_STRIDE(int color_fmt, int width)
