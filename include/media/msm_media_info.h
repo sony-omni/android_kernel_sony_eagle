@@ -158,8 +158,7 @@ invalid_input:
 static inline unsigned int VENUS_BUFFER_SIZE(
 	int color_fmt, int width, int height)
 {
-	unsigned int uv_alignment;
-	unsigned int size = 0;
+	unsigned int uv_alignment = 0, size = 0;
 	unsigned int y_plane, uv_plane, y_stride,
 		uv_stride, y_sclines, uv_sclines;
 	if (!width || !height)
