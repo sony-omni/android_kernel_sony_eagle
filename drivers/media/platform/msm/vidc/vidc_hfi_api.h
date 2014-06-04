@@ -101,7 +101,6 @@ enum hal_extradata_id {
 	HAL_EXTRADATA_METADATA_MBI,
 	HAL_EXTRADATA_FRAME_BITS_INFO,
 	HAL_EXTRADATA_LTR_INFO,
-	HAL_EXTRADATA_METADATA_MBI,
 	HAL_EXTRADATA_STREAM_USERDATA,
 };
 
@@ -1165,6 +1164,7 @@ struct hfi_device {
 	int (*session_clean)(void *sess);
 	int (*get_core_capabilities)(void);
 	int (*power_enable)(void *dev);
+	int (*suspend)(void *dev);
 };
 
 typedef void (*hfi_cmd_response_callback) (enum command_response cmd,
