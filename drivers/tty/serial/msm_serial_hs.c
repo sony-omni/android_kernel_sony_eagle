@@ -3623,7 +3623,6 @@ static void msm_hs_shutdown(struct uart_port *uport)
 	 */
 	mb();
 
-	hrtimer_cancel(&msm_uport->clk_off_timer);
 	msm_hs_clock_unvote(msm_uport);
 	if (msm_uport->clk_state != MSM_HS_CLK_OFF) {
 		/* to balance clk_state */
