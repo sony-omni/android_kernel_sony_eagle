@@ -49,6 +49,13 @@
 
 #include <mach/socinfo.h>
 
+/* KevinA_Lin 20140218 */
+#ifdef ORG_VER
+#else
+#include <linux/suspend_resume_irq.h>
+#endif
+/* KevinA_Lin 20140218 */
+
 union gic_base {
 	void __iomem *common_base;
 	void __percpu __iomem **percpu_base;
@@ -256,6 +263,14 @@ static void gic_show_resume_irq(struct gic_chip_data *gic)
 	for (i = find_first_bit(pending, gic->max_irq);
 	     i < gic->max_irq;
 	     i = find_next_bit(pending, gic->max_irq, i+1)) {
+
+		/* KevinA_Lin 20140218 */
+		#ifdef ORG_VER
+		#else
+			suspned_resume_irq_write(i + gic->irq_offset);
+		#endif
+		/* KevinA_Lin 20140218 */
+
 		pr_warning("%s: %d triggered", __func__,
 					i + gic->irq_offset);
 	}
