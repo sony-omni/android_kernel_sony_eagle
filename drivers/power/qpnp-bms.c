@@ -2304,17 +2304,12 @@ static int clamp_soc_based_on_voltage(struct qpnp_bms_chip *chip, int soc)
 		pr_err("adc vbat failed err = %d\n", rc);
 		return soc;
 	}
-	/*[CCI] S- Bug#2723 SR patches Jonny_Chan*/
-	#ifdef ORG_VER
-	if (soc == 0 && vbat_uv > chip->v_cutoff_uv) {
-	#else
+
 	/* only clamp when discharging */
 	if (is_battery_charging(chip))
 		return soc;
-	
+
 	if (soc <= 0 && vbat_uv > chip->v_cutoff_uv) {
-	#endif
-	/*[CCI] E- Bug#2723 SR patches Jonny_Chan*/
 		pr_debug("clamping soc to 1, vbat (%d) > cutoff (%d)\n",
 						vbat_uv, chip->v_cutoff_uv);
 		return 1;
