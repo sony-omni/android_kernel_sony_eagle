@@ -247,14 +247,6 @@ Optional properties:
 				corresponds to 'scaling' in this equation:
 				quot_adjust = (freq_turbo - freq_corner) * scaling / 1000.
 				This property is required if qcom,cpr-speed-bin-max-corners is present.
-- mem-acc-supply:		Regulator to vote for the memory accelerator configuration.
-				Not Present: memory accelerator configuration not supported.
-
-Example:
-	apc_vreg_corner: regulator@f9018000 {
-		status = "okay";
-		compatible = "qcom,cpr-regulator";
-		reg = <0xf9018000 0x1000>, <0xfc4b8000 0x1000>;
 		reg-names = "rbcpr", "efuse_addr";
 		interrupts = <0 15 0>;
 		regulator-name = "apc_corner";
