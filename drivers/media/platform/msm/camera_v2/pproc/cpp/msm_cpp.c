@@ -1733,10 +1733,9 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 		}
 		break;
 	}
+#if defined(CONFIG_SONY_CAM_V4L2)
 	case VIDIOC_MSM_CPP_SET_CLOCK: {
-		struct msm_cpp_clock_settings_t clock_settings;
-		unsigned long clock_rate = 0;
-		CPP_DBG("VIDIOC_MSM_CPP_SET_CLOCK\n");
+		long clock_rate = 0;
 		if (ioctl_ptr->len == 0) {
 			pr_err("ioctl_ptr->len is 0\n");
 			mutex_unlock(&cpp_dev->mutex);
@@ -1749,13 +1748,13 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 			return -EINVAL;
 		}
 
-		if (ioctl_ptr->len != sizeof(struct msm_cpp_clock_settings_t)) {
+		if (ioctl_ptr->len > sizeof(clock_rate)) {
 			pr_err("Not valid ioctl_ptr->len\n");
 			mutex_unlock(&cpp_dev->mutex);
 			return -EINVAL;
 		}
 
-		rc = (copy_from_user(&clock_settings,
+		rc = (copy_from_user(&clock_rate,
 			(void __user *)ioctl_ptr->ioctl_ptr,
 			ioctl_ptr->len) ? -EFAULT : 0);
 		if (rc) {
@@ -1764,26 +1763,23 @@ long msm_cpp_subdev_ioctl(struct v4l2_subdev *sd,
 			return -EINVAL;
 		}
 
-		if (clock_settings.clock_rate > 0) {
-			rc = msm_isp_update_bandwidth(ISP_CPP,
-				clock_settings.avg,
-				clock_settings.inst);
+		if (clock_rate > 0) {
+			clock_rate =
+				clk_round_rate(cpp_dev->cpp_clk[4], clock_rate);
+			CPP_DBG("clk:%ld\n", clock_rate);
+			clk_set_rate(cpp_dev->cpp_clk[4], clock_rate);
+			rc = msm_isp_update_bandwidth(ISP_CPP, clock_rate * 4,
+				clock_rate * 6);
 			if (rc < 0) {
 				pr_err("Bandwidth Set Failed!\n");
 				msm_isp_update_bandwidth(ISP_CPP, 0, 0);
 				mutex_unlock(&cpp_dev->mutex);
 				return -EINVAL;
 			}
-			clock_rate = clk_round_rate(
-				cpp_dev->cpp_clk[MSM_CPP_CORE_CLK_IDX],
-				clock_settings.clock_rate);
-			if (clock_rate != clock_settings.clock_rate)
-				pr_err("clock rate differ from settings\n");
-			clk_set_rate(cpp_dev->cpp_clk[MSM_CPP_CORE_CLK_IDX],
-				clock_rate);
 		}
 		break;
 	}
+#endif
 	case MSM_SD_SHUTDOWN: {
 		mutex_unlock(&cpp_dev->mutex);
 		pr_info("shutdown cpp node. open cnt:%d\n",
