@@ -28,8 +28,9 @@
 /* wait for at most 2 vsync for lowest refresh rate (24hz) */
 #define KOFF_TIMEOUT msecs_to_jiffies(84)
 
-#define STOP_TIMEOUT(hz) msecs_to_jiffies((1000 / hz) * (VSYNC_EXPIRE_TICK + 2))
 #define ULPS_ENTER_TIME msecs_to_jiffies(100)
+#define STOP_TIMEOUT(hz) \
+	msecs_to_jiffies(2 * (1000 / hz) * (VSYNC_EXPIRE_TICK + 2))
 
 struct mdss_mdp_cmd_ctx {
 	struct mdss_mdp_ctl *ctl;
@@ -117,16 +118,18 @@ exit:
 static int mdss_mdp_cmd_tearcheck_cfg(struct mdss_mdp_mixer *mixer,
 			struct mdss_mdp_cmd_ctx *ctx, int enable)
 {
-	u32 cfg;
+	u32 cfg, height;
 
 	cfg = BIT(19); /* VSYNC_COUNTER_EN */
 	if (ctx->tear_check)
 		cfg |= BIT(20);	/* VSYNC_IN_EN */
 	cfg |= ctx->vclk_line;
 
+	height = (ctx->height + ctx->vporch) * 2;
+
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_CONFIG_VSYNC, cfg);
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_SYNC_CONFIG_HEIGHT,
-				0xfff0); /* set to verh height */
+				height); /* set to verh height */
 
 	mdss_mdp_pingpong_write(mixer, MDSS_MDP_REG_PP_VSYNC_INIT_VAL,
 						ctx->height);
@@ -585,8 +588,6 @@ int mdss_mdp_cmd_kickoff(struct mdss_mdp_ctl *ctl, void *arg)
 		rc = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_UNBLANK, NULL);
 		WARN(rc, "intf %d unblank error (%d)\n", ctl->intf_num, rc);
 
-		ctx->panel_on++;
-
 		rc = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_PANEL_ON, NULL);
 		WARN(rc, "intf %d panel on error (%d)\n", ctl->intf_num, rc);
 
@@ -617,6 +618,21 @@ int mdss_mdp_cmd_kickoff(struct mdss_mdp_ctl *ctl, void *arg)
 	mb();
 	MDSS_XLOG(ctl->num,  ctx->koff_cnt, ctx->clk_enabled,
 						ctx->rdptr_enabled);
+
+	if (ctx->panel_on == 0) {
+		if (ctl->mfd) {
+			struct mdss_panel_data *pdata;
+			pdata = dev_get_platdata(&ctl->mfd->pdev->dev);
+			if (!pdata) {
+				pr_err("no panel connected\n");
+				return -ENODEV;
+			}
+
+			if (pdata->intf_ready)
+				pdata->intf_ready(pdata);
+		}
+		ctx->panel_on++;
+	}
 
 	return 0;
 }
