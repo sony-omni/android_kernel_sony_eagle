@@ -40,15 +40,6 @@ extern long* backupcrashflag;
 #include <linux/cciklog.h>
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
-
-/**/
-#ifdef CCI_TRACE_INIT_SERVICE
-#include <linux/proc_fs.h>
-#include <asm/uaccess.h>
-extern int get_svc_name(char *pName, int nameSize);
-#endif
-/**/
-
 #define PANIC_TIMER_STEP 100
 #define PANIC_BLINK_SPD 18
 
@@ -74,16 +65,6 @@ extern long abnormalflag;
 #define CONFIG_PANIC_TIMEOUT 0
 #endif
 int panic_timeout = CONFIG_PANIC_TIMEOUT;
-
-/**/
-#ifdef CCI_TRACE_INIT_SERVICE
-#define INIT_CRASH_STRING "kill init"
-#define SERVICE_NAME_LENGTH 64
-static char svc_name[SERVICE_NAME_LENGTH] = {0};
-static struct proc_dir_entry *svc_proc_entry = NULL;
-#endif
-/**/
-
 EXPORT_SYMBOL_GPL(panic_timeout);
 
 ATOMIC_NOTIFIER_HEAD(panic_notifier_list);
@@ -107,34 +88,6 @@ void __weak panic_smp_self_stop(void)
 	while (1)
 		cpu_relax();
 }
-
-/**/
-#ifdef CCI_TRACE_INIT_SERVICE
-static int svc_startrun_write(struct file *filp, const char __user *buff, unsigned long len, void *data)
-{
-	int ret = 0, length = 0;
-
-	memset((void*)svc_name, 0, sizeof(svc_name));
-	length = (len > sizeof(svc_name) ? sizeof(svc_name) : len);
-	ret = copy_from_user(&svc_name[0], buff, length);
-	if (ret) {
-		pr_err("%s: error: copy_from_user failed.\n", __func__);
-		ret = -EFAULT;
-	}
-	svc_name[length+1] = '\0';
-	pr_info("%s: svc_name[%s] length[%d]\n", __func__, &svc_name[0],length);
-	return length;
-}
-
-static int svc_startrun_read(char *page, char **start, off_t off, int count, int *eof, void *data)
-{
-	int len;
-	len = sprintf(page, "%s\n", &svc_name[0]);
-	pr_info("%s: len[%d] svc_name[%s]\n", __func__, len, &svc_name[0]);
-	return len;
-}
-#endif
-/**/
 
 //quiet reboot
 extern void set_quiet_reboot_flag(void);
@@ -177,6 +130,7 @@ void panic(const char *fmt, ...)
 	mb();
 	
 	coresight_abort();
+
 	/*
 	 * Disable local interrupts. This will prevent panic_smp_self_stop
 	 * from deadlocking the first cpu that invokes the panic, since
@@ -210,25 +164,12 @@ void panic(const char *fmt, ...)
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
 #ifdef CCI_KLOG_CRASH_SIZE
 #if CCI_KLOG_CRASH_SIZE
-	set_fault_state(FAULT_LEVEL_PANIC, FAULT_TYPE_NONE, buf);
+	set_fault_state(0x1, 0, buf);
 #endif // #if CCI_KLOG_CRASH_SIZE
 #endif // #ifdef CCI_KLOG_CRASH_SIZE
-
-/**/
-#ifdef CCI_TRACE_INIT_SERVICE
-	if (NULL != strstr(buf, INIT_CRASH_STRING))
-	{
-		printk(KERN_EMERG "Kernel panic - not syncing: %s ,service[%s] died!\n",buf,svc_name);
-	}
-	else
-#endif
-/**/
-	{
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
 	printk(KERN_EMERG "Kernel panic - not syncing: %s\n",buf);
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
-	}
-
 #ifdef CONFIG_CCI_KLOG
 	cklc_save_magic(KLOG_MAGIC_AARM_PANIC, KLOG_STATE_AARM_PANIC);
 	local_irq_disable();
@@ -244,12 +185,10 @@ void panic(const char *fmt, ...)
 		}
 //memory info
 		show_mem(SHOW_MEM_FILTER_NODES);
-/*
 #ifndef CONFIG_DEBUG_BUGVERBOSE
 //call-stack
 		dump_stack();
 #endif // #ifndef CONFIG_DEBUG_BUGVERBOSE
-*/
 //call-stacks of all threads/processes, it will output huge amount of logs
 //		show_state();
 	}
@@ -334,7 +273,7 @@ void panic(const char *fmt, ...)
 #ifdef CONFIG_CCI_KLOG
 #ifdef CCI_KLOG_CRASH_SIZE
 #if CCI_KLOG_CRASH_SIZE
-	set_fault_state(FAULT_LEVEL_FINISH, FAULT_TYPE_NONE, "");//crash info finished, record important log only
+	set_fault_state(-1, -1, "");//crash info finished, record important log only
 #endif // #if CCI_KLOG_CRASH_SIZE
 #endif // #ifdef CCI_KLOG_CRASH_SIZE
 	kernel_restart(NULL);
@@ -549,29 +488,6 @@ static int init_oops_id(void)
 	return 0;
 }
 late_initcall(init_oops_id);
-
-/**/
-#ifdef CCI_TRACE_INIT_SERVICE
-static int init_trace_service_name(void)
-{
-	memset((void*)svc_name, 0, sizeof(svc_name));
-	svc_proc_entry = create_proc_entry("svc_startrun", 0777, NULL);
-	if (svc_proc_entry == NULL) 
-	{
-		pr_err("Couldn't create svc_startrun proc entry!");
-	} 
-	else 
-	{
-		pr_info("Create svc_startrun proc entry success!");
-		svc_proc_entry->write_proc = svc_startrun_write;
-		svc_proc_entry->read_proc = svc_startrun_read;
-	}
-
-	return 0;
-}
-late_initcall(init_trace_service_name);
-#endif
-/**/
 
 void print_oops_end_marker(void)
 {

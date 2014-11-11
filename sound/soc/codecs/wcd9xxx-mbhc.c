@@ -66,7 +66,11 @@
 #define HS_DETECT_PLUG_TIME_MS (5 * 1000)
 #define HS_DETECT_PLUG_INERVAL_MS 100
 #define SWCH_REL_DEBOUNCE_TIME_MS 50
+#if 0  // BAM_S 140225 B1949
 #define SWCH_IRQ_DEBOUNCE_TIME_US 5000
+#else
+#define SWCH_IRQ_DEBOUNCE_TIME_US 10000
+#endif // BAM_E 140225
 #define BTN_RELEASE_DEBOUNCE_TIME_MS 25
 
 #define GND_MIC_SWAP_THRESHOLD 2
@@ -118,6 +122,8 @@
 /* RX_HPH_CNP_WG_TIME increases by 0.24ms */
 #define WCD9XXX_WG_TIME_FACTOR_US	240
 
+#define WCD9XXX_IRQ_MBHC_JACK_SWITCH_DEFAULT 28
+
 #if 0  // BAM_S 131024 B835
 #define WCD9XXX_V_CS_HS_MAX 500
 #else
@@ -125,6 +131,7 @@
 #endif  // BAM_E 131024
 #define WCD9XXX_V_CS_NO_MIC 5
 #define WCD9XXX_MB_MEAS_DELTA_MAX_MV 80
+
 #if 0  // BAM_S 131104 B835
 #define WCD9XXX_CS_MEAS_DELTA_MAX_MV 12
 #else
@@ -221,6 +228,7 @@ static void wcd9xxx_pause_hs_polling(struct wcd9xxx_mbhc *mbhc)
 /* called under codec_resource_lock acquisition */
 static void wcd9xxx_start_hs_polling(struct wcd9xxx_mbhc *mbhc)
 {
+	s16 v_brh, v_b1_hu;
 	struct snd_soc_codec *codec = mbhc->codec;
 	int mbhc_state = mbhc->mbhc_state;
 
@@ -261,6 +269,17 @@ static void wcd9xxx_start_hs_polling(struct wcd9xxx_mbhc *mbhc)
 		/* set to max */
 		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B6_CTL, 0x7F);
 		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B5_CTL, 0xFF);
+
+		v_brh = wcd9xxx_get_current_v(mbhc, WCD9XXX_CURRENT_V_BR_H);
+		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
+			      (v_brh >> 8) & 0xFF);
+		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL,
+			      v_brh & 0xFF);
+		v_b1_hu = wcd9xxx_get_current_v(mbhc, WCD9XXX_CURRENT_V_B1_HU);
+		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL,
+			      v_b1_hu & 0xFF);
+		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
+			      (v_b1_hu >> 8) & 0xFF);
 	}
 
 	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_EN_CTL, 0x1);
@@ -321,32 +340,22 @@ static bool __wcd9xxx_switch_micbias(struct wcd9xxx_mbhc *mbhc,
 			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B2_CTL,
 				      (d->v_ins_hu[MBHC_V_IDX_VDDIO] >> 8) &
 				      0xFF);
-
-			if (mbhc->mbhc_state != MBHC_STATE_POTENTIAL_RECOVERY) {
-				/* Threshods for button press */
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL,
-					d->v_b1_hu[MBHC_V_IDX_VDDIO] & 0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
-					(d->v_b1_hu[MBHC_V_IDX_VDDIO] >> 8) &
-					0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B5_CTL,
-					d->v_b1_h[MBHC_V_IDX_VDDIO] & 0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B6_CTL,
-					(d->v_b1_h[MBHC_V_IDX_VDDIO] >> 8) &
-					0xFF);
-				/* Threshods for button release */
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL,
-					d->v_brh[MBHC_V_IDX_VDDIO] & 0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
-					(d->v_brh[MBHC_V_IDX_VDDIO] >> 8) &
-					0xFF);
-			}
+			/* Threshods for button press */
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL,
+				      d->v_b1_hu[MBHC_V_IDX_VDDIO] & 0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
+				      (d->v_b1_hu[MBHC_V_IDX_VDDIO] >> 8) &
+				      0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B5_CTL,
+				      d->v_b1_h[MBHC_V_IDX_VDDIO] & 0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B6_CTL,
+				      (d->v_b1_h[MBHC_V_IDX_VDDIO] >> 8) &
+				      0xFF);
+			/* Threshods for button release */
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL,
+				      d->v_brh[MBHC_V_IDX_VDDIO] & 0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
+				      (d->v_brh[MBHC_V_IDX_VDDIO] >> 8) & 0xFF);
 			pr_debug("%s: Programmed MBHC thresholds to VDDIO\n",
 				 __func__);
 		}
@@ -382,31 +391,22 @@ static bool __wcd9xxx_switch_micbias(struct wcd9xxx_mbhc *mbhc,
 			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B2_CTL,
 					(d->v_ins_hu[MBHC_V_IDX_CFILT] >> 8) &
 					0xFF);
-			if (mbhc->mbhc_state != MBHC_STATE_POTENTIAL_RECOVERY) {
-				/* Revert threshods for button press */
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL,
-					d->v_b1_hu[MBHC_V_IDX_CFILT] & 0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
-					(d->v_b1_hu[MBHC_V_IDX_CFILT] >> 8) &
-					0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B5_CTL,
-					d->v_b1_h[MBHC_V_IDX_CFILT] & 0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B6_CTL,
-					(d->v_b1_h[MBHC_V_IDX_CFILT] >> 8) &
-					0xFF);
-				/* Revert threshods for button release */
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL,
-					d->v_brh[MBHC_V_IDX_CFILT] & 0xFF);
-				snd_soc_write(codec,
-					WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
-					(d->v_brh[MBHC_V_IDX_CFILT] >> 8) &
-					0xFF);
-			}
+			/* Revert threshods for button press */
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL,
+				      d->v_b1_hu[MBHC_V_IDX_CFILT] & 0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
+				      (d->v_b1_hu[MBHC_V_IDX_CFILT] >> 8) &
+				      0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B5_CTL,
+				      d->v_b1_h[MBHC_V_IDX_CFILT] & 0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B6_CTL,
+				      (d->v_b1_h[MBHC_V_IDX_CFILT] >> 8) &
+				      0xFF);
+			/* Revert threshods for button release */
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL,
+				      d->v_brh[MBHC_V_IDX_CFILT] & 0xFF);
+			snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
+				      (d->v_brh[MBHC_V_IDX_CFILT] >> 8) & 0xFF);
 			pr_debug("%s: Programmed MBHC thresholds to MICBIAS\n",
 					__func__);
 		}
@@ -504,25 +504,19 @@ static void wcd9xxx_calibrate_hs_polling(struct wcd9xxx_mbhc *mbhc)
 	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B1_CTL, v_ins_hu & 0xFF);
 	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B2_CTL,
 		      (v_ins_hu >> 8) & 0xFF);
-
-	if (mbhc->mbhc_state != MBHC_STATE_POTENTIAL_RECOVERY) {
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL, v_b1_hu &
-				0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
-				(v_b1_hu >> 8) & 0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B5_CTL, v_b1_h &
-				0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B6_CTL,
-				(v_b1_h >> 8) & 0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL, v_brh &
-				0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
-				(v_brh >> 8) & 0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B11_CTL,
-				mbhc->mbhc_data.v_brl & 0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B12_CTL,
-				(mbhc->mbhc_data.v_brl >> 8) & 0xFF);
-	}
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL, v_b1_hu & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
+		      (v_b1_hu >> 8) & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B5_CTL, v_b1_h & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B6_CTL,
+		      (v_b1_h >> 8) & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL, v_brh & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
+		      (v_brh >> 8) & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B11_CTL,
+		      mbhc->mbhc_data.v_brl & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B12_CTL,
+		      (mbhc->mbhc_data.v_brl >> 8) & 0xFF);
 }
 
 static void wcd9xxx_codec_switch_cfilt_mode(struct wcd9xxx_mbhc *mbhc,
@@ -1476,12 +1470,6 @@ wcd9xxx_cs_find_plug_type(struct wcd9xxx_mbhc *mbhc,
 			type = PLUG_TYPE_INVALID;
 		}
 	}
-
-	if (type == PLUG_TYPE_HEADSET &&
-	    (mbhc->mbhc_cfg->micbias_enable_flags &
-	    (1 << MBHC_MICBIAS_ENABLE_REGULAR_HEADSET)))
-		mbhc->micbias_enable = true;
-
 exit:
 	pr_debug("%s: Plug type %d detected\n", __func__, type);
 	return type;
@@ -2052,8 +2040,7 @@ static void wcd9xxx_find_plug_and_report(struct wcd9xxx_mbhc *mbhc,
 
 		/* if PA is already on, switch micbias source to VDDIO */
 		if (mbhc->event_state &
-		    (1 << MBHC_EVENT_PA_HPHL | 1 << MBHC_EVENT_PA_HPHR |
-		     1 << MBHC_EVENT_PRE_TX_1_3_ON))
+		    (1 << MBHC_EVENT_PA_HPHL | 1 << MBHC_EVENT_PA_HPHR))
 			__wcd9xxx_switch_micbias(mbhc, 1, false, false);
 		wcd9xxx_start_hs_polling(mbhc);
 	} else if (plug_type == PLUG_TYPE_HIGH_HPH) {
@@ -3137,7 +3124,10 @@ static void wcd9xxx_get_z(struct wcd9xxx_mbhc *mbhc, s16 *dce_z, s16 *sta_z)
 	}
 	if (dce_z) {
 		*dce_z = wcd9xxx_codec_sta_dce(mbhc, 1, false);
+
+		#if 0  // BAM_S 131104 B835
 		pr_debug("%s: dce_z 0x%x\n", __func__, *dce_z & 0xFFFF);
+		#endif // BAM_E 131104
 	}
 
 	/* Connect override from micbias */
@@ -3180,22 +3170,15 @@ static int wcd9xxx_update_rel_threshold(struct wcd9xxx_mbhc *mbhc, int ceilmv)
 	mv = ceilmv + btn_det->v_btn_press_delta_cic;
 	pr_debug("%s: reprogram vb1hu/vbrh to %dmv\n", __func__, mv);
 
-	if (mbhc->mbhc_state != MBHC_STATE_POTENTIAL_RECOVERY) {
-		/*
-		 * update LSB first so mbhc hardware block
-		 * doesn't see too low value.
-		 */
-		v_b1_hu = wcd9xxx_codec_v_sta_dce(mbhc, STA, mv, false);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL, v_b1_hu &
-				0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
-				(v_b1_hu >> 8) & 0xFF);
-		v_brh = wcd9xxx_codec_v_sta_dce(mbhc, DCE, mv, false);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL, v_brh &
-				0xFF);
-		snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
-				(v_brh >> 8) & 0xFF);
-	}
+	/* update LSB first so mbhc hardware block doesn't see too low value */
+	v_b1_hu = wcd9xxx_codec_v_sta_dce(mbhc, STA, mv, false);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B3_CTL, v_b1_hu & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B4_CTL,
+		      (v_b1_hu >> 8) & 0xFF);
+	v_brh = wcd9xxx_codec_v_sta_dce(mbhc, DCE, mv, false);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B9_CTL, v_brh & 0xFF);
+	snd_soc_write(codec, WCD9XXX_A_CDC_MBHC_VOLT_B10_CTL,
+		      (v_brh >> 8) & 0xFF);
 	return 0;
 }
 
@@ -3281,9 +3264,7 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 				 __func__);
 			if (mbhc->update_z) {
 				wcd9xxx_update_z(mbhc);
-				dce_z = mbhc->mbhc_data.dce_z;
-				sta_z = mbhc->mbhc_data.sta_z;
-				mbhc->update_z = true;
+				mbhc->update_z = false;
 			}
 			stamv = __wcd9xxx_codec_sta_dce_v(mbhc, 0, sta, sta_z,
 						mbhc->mbhc_data.micb_mv);
@@ -3309,9 +3290,7 @@ irqreturn_t wcd9xxx_dce_handler(int irq, void *data)
 
 	if (mbhc->update_z) {
 		wcd9xxx_update_z(mbhc);
-		dce_z = mbhc->mbhc_data.dce_z;
-		sta_z = mbhc->mbhc_data.sta_z;
-		mbhc->update_z = true;
+		mbhc->update_z = false;
 	}
 
 	stamv = __wcd9xxx_codec_sta_dce_v(mbhc, 0, sta, sta_z,
@@ -3785,7 +3764,6 @@ static void wcd9xxx_mbhc_setup(struct wcd9xxx_mbhc *mbhc)
 	gain = wcd9xxx_mbhc_cal_btn_det_mp(btn_det, MBHC_BTN_DET_GAIN);
 	snd_soc_update_bits(codec, WCD9XXX_A_CDC_MBHC_B2_CTL, 0x78,
 			    gain[idx] << 3);
-	snd_soc_update_bits(codec, WCD9XXX_A_MICB_2_MBHC, 0x04, 0x04);
 
 	pr_debug("%s: leave\n", __func__);
 }
@@ -4284,14 +4262,6 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 			if (!mbhc->polling_active)
 				wcd9xxx_enable_mbhc_txfe(mbhc, false);
 		}
-		if (mbhc->micbias_enable && mbhc->polling_active &&
-		    !(snd_soc_read(mbhc->codec, mbhc->mbhc_bias_regs.ctl_reg)
-	            & 0x80)) {
-			pr_debug("%s:Micbias turned off by recording, set up again",
-				 __func__);
-			snd_soc_update_bits(codec, mbhc->mbhc_bias_regs.ctl_reg,
-					    0x80, 0x80);
-		}
 		break;
 	/* PA usage change */
 	case WCD9XXX_EVENT_PRE_HPHL_PA_ON:
@@ -4312,7 +4282,7 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 			hphlocp_off_report(mbhc, SND_JACK_OC_HPHL);
 		if (!(mbhc->event_state &
 		      (1 << MBHC_EVENT_PA_HPHL | 1 << MBHC_EVENT_PA_HPHR |
-		       1 << MBHC_EVENT_PRE_TX_1_3_ON)))
+		       1 << MBHC_EVENT_PRE_TX_3_ON)))
 			wcd9xxx_switch_micbias(mbhc, 0);
 		break;
 	case WCD9XXX_EVENT_POST_HPHR_PA_OFF:
@@ -4324,7 +4294,7 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 			hphrocp_off_report(mbhc, SND_JACK_OC_HPHL);
 		if (!(mbhc->event_state &
 		      (1 << MBHC_EVENT_PA_HPHL | 1 << MBHC_EVENT_PA_HPHR |
-		       1 << MBHC_EVENT_PRE_TX_1_3_ON)))
+		       1 << MBHC_EVENT_PRE_TX_3_ON)))
 			wcd9xxx_switch_micbias(mbhc, 0);
 		break;
 	/* Clock usage change */
@@ -4406,23 +4376,23 @@ static int wcd9xxx_event_notify(struct notifier_block *self, unsigned long val,
 	case WCD9XXX_EVENT_POST_BG_MBHC_ON:
 		/* Not used for now */
 		break;
-	case WCD9XXX_EVENT_PRE_TX_1_3_ON:
+	case WCD9XXX_EVENT_PRE_TX_3_ON:
 		/*
 		 * if polling is ON, mbhc micbias not enabled
 		 *  switch micbias source to VDDIO
 		 */
-		set_bit(MBHC_EVENT_PRE_TX_1_3_ON, &mbhc->event_state);
+		set_bit(MBHC_EVENT_PRE_TX_3_ON, &mbhc->event_state);
 		if (!(snd_soc_read(codec, mbhc->mbhc_bias_regs.ctl_reg)
 		      & 0x80) &&
 		    mbhc->polling_active && !mbhc->mbhc_micbias_switched)
 			wcd9xxx_switch_micbias(mbhc, 1);
 		break;
-	case WCD9XXX_EVENT_POST_TX_1_3_OFF:
+	case WCD9XXX_EVENT_POST_TX_3_OFF:
 		/*
 		 * Switch back to micbias if HPH PA or TX3 path
 		 * is disabled
 		 */
-		clear_bit(MBHC_EVENT_PRE_TX_1_3_ON, &mbhc->event_state);
+		clear_bit(MBHC_EVENT_PRE_TX_3_ON, &mbhc->event_state);
 		if (mbhc->polling_active && mbhc->mbhc_micbias_switched &&
 		    !(mbhc->event_state & (1 << MBHC_EVENT_PA_HPHL |
 		      1 << MBHC_EVENT_PA_HPHR)))
@@ -4549,8 +4519,10 @@ static int wcd9xxx_detect_impedance(struct wcd9xxx_mbhc *mbhc, uint32_t *zl,
 int wcd9xxx_mbhc_get_impedance(struct wcd9xxx_mbhc *mbhc, uint32_t *zl,
 			       uint32_t *zr)
 {
+	WCD9XXX_BCL_LOCK(mbhc->resmgr);
 	*zl = mbhc->zl;
 	*zr = mbhc->zr;
+	WCD9XXX_BCL_UNLOCK(mbhc->resmgr);
 
 	if (*zl && *zr)
 		return 0;

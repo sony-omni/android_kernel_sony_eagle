@@ -37,12 +37,6 @@
 
 #include <trace/events/exception.h>
 
-//[VY5x] ==> CCI KLog, added by Jimmy@CCI
-#ifdef CONFIG_CCI_KLOG
-#include <linux/cciklog.h>
-#endif // #ifdef CONFIG_CCI_KLOG
-//[VY5x] <== CCI KLog, added by Jimmy@CCI
-
 static const char *handler[]= { "prefetch abort", "data abort", "address exception", "interrupt" };
 
 void *vectors_page;
@@ -304,7 +298,7 @@ void die(const char *str, struct pt_regs *regs, int err)
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
 #ifdef CCI_KLOG_CRASH_SIZE
 #if CCI_KLOG_CRASH_SIZE
-	set_fault_state(FAULT_LEVEL_DIE, err, str);
+	set_fault_state(0x2, err, str);
 #endif // #if CCI_KLOG_CRASH_SIZE
 #endif // #ifdef CCI_KLOG_CRASH_SIZE
 //[VY5x] <== CCI KLog, added by Jimmy@CCI

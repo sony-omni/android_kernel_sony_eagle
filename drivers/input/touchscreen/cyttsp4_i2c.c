@@ -51,7 +51,7 @@
 
 
 /* [OPT] change circuit design after DVT2 phase, 20131008, Add Start */
-//#include <mach/cci_hw_id.h>
+#include <mach/cci_hw_id.h>
 /* [OPT] change circuit design after DVT2 phase, 20131008, Add End */
 
 #define CY_I2C_DATA_SIZE  (3 * 256)
@@ -293,7 +293,6 @@ static int __devinit cyttsp4_i2c_probe(struct i2c_client *client,
 			printk("[TP] regulator_enable(8226_l27) vreg_l27 fail.\n");
 			regulator_put(vreg_l27);
 		}
-
 //	}
 	/* [OPT] change circuit design after DVT2 phase, 20131008, Add End */
 	/* [Optical][Touch] Touch driver bring up, 20130717, Add End */

@@ -152,8 +152,6 @@ source "drivers/coresight/Kconfig"
 
 source "drivers/bif/Kconfig"
 
-source "drivers/sensors/Kconfig"
-
 #[VY5x] ==> CCI KLog, added by Jimmy@CCI
 source "drivers/cci/Kconfig"
 #[VY5x] <== CCI KLog, added by Jimmy@CCI

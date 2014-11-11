@@ -16,33 +16,6 @@
 #include "../../drivers/staging/android/logger.h"
 
 #define kprintk(fmt, args...)					printk(KERN_CRIT KLOG_LOG_TAG fmt, ##args)
-#define kprintk_set_magic(reason, magic, state, final)		kprintk("set magic(%s):magic=%s, state=%s, final=%s\n", reason, magic, state, final)
-
-enum klog_crash_state
-{
-	CRASH_STATE_INIT = 0,
-	CRASH_STATE_CRASHING = 1,
-	CRASH_STATE_PREVIOUS = 2,
-};
-
-enum klog_fault_level
-{
-	FAULT_LEVEL_FINISH = -1,
-	FAULT_LEVEL_INIT = 0,
-	FAULT_LEVEL_PANIC = 1,
-	FAULT_LEVEL_DIE = 2,
-	FAULT_LEVEL_DATA_ABORT = 3,
-	FAULT_LEVEL_PREFETCH_ABORT = 4,
-	FAULT_LEVEL_SUBSYSTEM = 5,
-	FAULT_LEVEL_WATCHDOG = 6,
-	FAULT_LEVEL_EXIST = 0x10,
-};
-
-enum klog_fault_type
-{
-	FAULT_TYPE_INIT = -1,
-	FAULT_TYPE_NONE = 0,
-};
 
 struct klog_time
 {

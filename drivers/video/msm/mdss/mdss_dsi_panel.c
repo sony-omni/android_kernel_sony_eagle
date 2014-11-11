@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,7 +19,7 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/leds.h>
-#include <linux/qpnp/pwm.h>
+#include <linux/pwm.h>
 #include <linux/err.h>
 
 #include "mdss_dsi.h"
@@ -30,10 +30,29 @@ DEFINE_LED_TRIGGER(bl_led_trigger);
 
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
 {
+	int ret;
+
+	if (!gpio_is_valid(ctrl->pwm_pmic_gpio)) {
+		pr_err("%s: pwm_pmic_gpio=%d Invalid\n", __func__,
+				ctrl->pwm_pmic_gpio);
+		ctrl->pwm_pmic_gpio = -1;
+		return;
+	}
+
+	ret = gpio_request(ctrl->pwm_pmic_gpio, "disp_pwm");
+	if (ret) {
+		pr_err("%s: pwm_pmic_gpio=%d request failed\n", __func__,
+				ctrl->pwm_pmic_gpio);
+		ctrl->pwm_pmic_gpio = -1;
+		return;
+	}
+
 	ctrl->pwm_bl = pwm_request(ctrl->pwm_lpg_chan, "lcd-bklt");
 	if (ctrl->pwm_bl == NULL || IS_ERR(ctrl->pwm_bl)) {
-		pr_err("%s: Error: lpg_chan=%d pwm request failed",
-				__func__, ctrl->pwm_lpg_chan);
+		pr_err("%s: lpg_chan=%d pwm request failed", __func__,
+				ctrl->pwm_lpg_chan);
+		gpio_free(ctrl->pwm_pmic_gpio);
+		ctrl->pwm_pmic_gpio = -1;
 	}
 }
 
@@ -69,9 +88,9 @@ static void mdss_dsi_panel_bklt_pwm(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 		ctrl->pwm_enabled = 0;
 	}
 
-	ret = pwm_config_us(ctrl->pwm_bl, duty, ctrl->pwm_period);
+	ret = pwm_config(ctrl->pwm_bl, duty, ctrl->pwm_period);
 	if (ret) {
-		pr_err("%s: pwm_config_us() failed err=%d.\n", __func__, ret);
+		pr_err("%s: pwm_config() failed err=%d.\n", __func__, ret);
 		return;
 	}
 
@@ -118,11 +137,6 @@ static void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
 	cmdreq.cmds = pcmds->cmds;
 	cmdreq.cmds_cnt = pcmds->cmd_cnt;
 	cmdreq.flags = CMD_REQ_COMMIT;
-
-	/*Panel ON/Off commands should be sent in DSI Low Power Mode*/
-	if (pcmds->link_state == DSI_LP_MODE)
-		cmdreq.flags  |= CMD_REQ_LP_MODE;
-
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 
@@ -140,7 +154,6 @@ extern int g_mdss_dsi_lcd_id;
 static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 {
 	struct dcs_cmd_req cmdreq;
-//S [VVVV] JackBB 2014/3/21 BL Modify
   int new_level;
 
   if(g_mdss_dsi_lcd_id == 0)
@@ -158,7 +171,6 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	}
 
 	led_pwm1[1] = (unsigned char)new_level;
-//E [VVVV] JackBB 2014/3/21 BL Modify
 
 	memset(&cmdreq, 0, sizeof(cmdreq));
 	cmdreq.cmds = &backlight_cmd;
@@ -283,17 +295,6 @@ static int mdss_dsi_panel_partial_update(struct mdss_panel_data *pdata)
 	return rc;
 }
 
-static struct mdss_dsi_ctrl_pdata *get_rctrl_data(struct mdss_panel_data *pdata)
-{
-	if (!pdata || !pdata->next) {
-		pr_err("%s: Invalid panel data\n", __func__);
-		return NULL;
-	}
-
-	return container_of(pdata->next, struct mdss_dsi_ctrl_pdata,
-			panel_data);
-}
-
 static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 							u32 bl_level)
 {
@@ -325,16 +326,6 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 		break;
 	case BL_DCS_CMD:
 		mdss_dsi_panel_bklt_dcs(ctrl_pdata, bl_level);
-		if (ctrl_pdata->shared_pdata.broadcast_enable &&
-				ctrl_pdata->ndx == DSI_CTRL_0) {
-			struct mdss_dsi_ctrl_pdata *rctrl_pdata = NULL;
-			rctrl_pdata = get_rctrl_data(pdata);
-			if (!rctrl_pdata) {
-				pr_err("%s: Right ctrl data NULL\n", __func__);
-				return;
-			}
-			mdss_dsi_panel_bklt_dcs(rctrl_pdata, bl_level);
-		}
 		break;
 	default:
 		pr_err("%s: Unknown bl_ctrl configuration\n",
@@ -810,8 +801,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 			ctrl_pdata->bklt_ctrl = BL_DCS_CMD;
 		}
 	}
-	rc = of_property_read_u32(np, "qcom,mdss-brightness-max-level", &tmp);
-	pinfo->brightness_max = (!rc ? tmp : MDSS_MAX_BL_BRIGHTNESS);
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-bl-min-level", &tmp);
 	pinfo->bl_min = (!rc ? tmp : 0);
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-bl-max-level", &tmp);
@@ -853,11 +842,11 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	pinfo->mipi.insert_dcs_cmd =
 			(!rc ? tmp : 1);
 	rc = of_property_read_u32(np,
-		"qcom,mdss-dsi-wr-mem-continue", &tmp);
+		"qcom,mdss-dsi-te-v-sync-continue-lines", &tmp);
 	pinfo->mipi.wr_mem_continue =
 			(!rc ? tmp : 0x3c);
 	rc = of_property_read_u32(np,
-		"qcom,mdss-dsi-wr-mem-start", &tmp);
+		"qcom,mdss-dsi-te-v-sync-rd-ptr-irq-line", &tmp);
 	pinfo->mipi.wr_mem_start =
 			(!rc ? tmp : 0x2c);
 	rc = of_property_read_u32(np,
@@ -867,7 +856,7 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-virtual-channel-id", &tmp);
 	pinfo->mipi.vc = (!rc ? tmp : 0);
 	pinfo->mipi.rgb_swap = DSI_RGB_SWAP_RGB;
-	data = of_get_property(np, "qcom,mdss-dsi-color-order", NULL);
+	data = of_get_property(np, "mdss-dsi-color-order", NULL);
 	if (data) {
 		if (!strcmp(data, "rgb_swap_rbg"))
 			pinfo->mipi.rgb_swap = DSI_RGB_SWAP_RBG;
@@ -893,11 +882,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	pinfo->mipi.t_clk_pre = (!rc ? tmp : 0x24);
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-t-clk-post", &tmp);
 	pinfo->mipi.t_clk_post = (!rc ? tmp : 0x03);
-
-	pinfo->mipi.rx_eot_ignore = of_property_read_bool(np,
-		"qcom,mdss-dsi-rx-eot-ignore");
-	pinfo->mipi.tx_eot_append = of_property_read_bool(np,
-		"qcom,mdss-dsi-tx-eot-append");
 
 	rc = of_property_read_u32(np, "qcom,mdss-dsi-stream", &tmp);
 	pinfo->mipi.stream = (!rc ? tmp : 0);
@@ -955,35 +939,6 @@ error:
 	return -EINVAL;
 }
 
-static ssize_t mdss_dsi_panel_pcc_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	u32 r, g, b;
-
-	r = g = b = 0;
-
-	return scnprintf(buf, PAGE_SIZE, "0x%x 0x%x 0x%x ", r, g, b);
-}
-
-static struct device_attribute panel_attributes[] = {
-	__ATTR(cc, S_IRUGO, mdss_dsi_panel_pcc_show, NULL)
-};
-
-static int register_attributes(struct device *dev)
-{
-	int i;
-	for (i = 0; i < ARRAY_SIZE(panel_attributes); i++)
-		if (device_create_file(dev, panel_attributes + i))
-			goto error;
-	return 0;
-error:
-	dev_err(dev, "%s: Unable to create interface\n", __func__);
-	for (--i; i >= 0 ; i--)
-		device_remove_file(dev, panel_attributes + i);
-	return -ENODEV;
-}
-struct device virtdev;//[VVVV] JackBB 2014/6/9
-
 int mdss_dsi_panel_init(struct device_node *node,
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 	bool cmd_cfg_cont_splash)
@@ -992,7 +947,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 	static const char *panel_name;
 	bool cont_splash_enabled;
 	bool partial_update_enabled;
-  char *path_name = "mdss_dsi_panel";//[VVVV] JackBB 2014/6/9
 
 	if (!node) {
 		pr_err("%s: no panel node\n", __func__);
@@ -1006,21 +960,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 						__func__, __LINE__);
 	else
 		pr_info("%s: Panel Name = %s\n", __func__, panel_name);
-
-  //S [VVVV] JackBB 2014/6/9
-	dev_set_name(&virtdev, "%s", path_name);
-	rc = device_register(&virtdev);
-	if (rc) {
-		pr_err("%s: device_register rc = %d\n", __func__, rc);
-		//return rc;
-	}
-
-	rc = register_attributes(&virtdev);
-	if (rc) {
-		pr_err("%s: register_attributes rc = %d\n", __func__, rc);
-		//goto error;
-	}
-  //E [VVVV] JackBB 2014/6/9
 
 	rc = mdss_panel_parse_dt(node, ctrl_pdata);
 	if (rc) {

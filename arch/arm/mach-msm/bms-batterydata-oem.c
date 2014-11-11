@@ -12,15 +12,14 @@
 
 #include <linux/batterydata-lib.h>
 
-
-/* [CCI] S- Bug# Jonny_Chan*/
-static char battery_cfg_FW_version[] = "0001";
+//S:LO
+static char battery_cfg_FW_version[] = "0002"; /*[Bug1166] Jonny_Chan*/
 
 char * get_battery_cfg_version(void)
 {
 	return battery_cfg_FW_version;
 }
-/* [CCI] E- Bug# Jonny_Chan*/
+//E:LO
 
 static struct single_row_lut fcc_temp = {
 	.x		= {-20, 0, 5, 25, 40, 45, 55, 60, 70},
@@ -40,7 +39,7 @@ static struct pc_temp_ocv_lut pc_temp_ocv = {
 	.temp		= {-20, 0, 5, 25, 40, 45, 55, 60, 70},
 	.percent	= {100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 16, 13, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0},
 	.ocv		= {
-				{4232, 4228, 4225, 4221, 4214, 4211, 4207, 4204, 4202},
+				{4197, 4193, 4190, 4186, 4179, 4176, 4172, 4169, 4167},/*[Bug1166] Jonny_Chan*/
 				{4127, 4135, 4133, 4136, 4131, 4130, 4129, 4126, 4126},
 				{4070, 4083, 4082, 4085, 4081, 4080, 4079, 4076, 4076},
 				{4019, 4036, 4037, 4042, 4038, 4037, 4036, 4034, 4034},

@@ -25,6 +25,7 @@
 #include <linux/switch.h>
 //E:LO
 
+
 enum {
 	DEBOUNCE_UNSTABLE     = BIT(0),	/* Got irq, while debouncing */
 	DEBOUNCE_PRESSED      = BIT(1),
@@ -298,14 +299,14 @@ static int gpio_event_input_request_irqs(struct gpio_input_state *ds)
 			}
 #endif
 		} else {
-		err = request_irq(irq, gpio_event_input_irq_handler,
+			err = request_irq(irq, gpio_event_input_irq_handler,
 				  req_flags, "gpio_keys", &ds->key_state[i]);
-		if (err) {
-			pr_err("gpio_event_input_request_irqs: request_irq "
-				"failed for input %d, irq %d\n",
-				ds->info->keymap[i].gpio, irq);
-			goto err_request_irq_failed;
-		}
+			if (err) {
+				pr_err("gpio_event_input_request_irqs: request_irq "
+					"failed for input %d, irq %d\n",
+					ds->info->keymap[i].gpio, irq);
+				goto err_request_irq_failed;
+			}
 		}
 #endif
 		if (ds->info->info.no_suspend) {
@@ -490,12 +491,12 @@ int gpio_event_input_func(struct gpio_event_input_devs *input_devs,
 				}			
 #endif
 			} else {
-			ret = gpio_request(di->keymap[i].gpio, "gpio_kp_in");
-			if (ret) {
-				pr_err("gpio_event_input_func: gpio_request "
-					"failed for %d\n", di->keymap[i].gpio);
-				goto err_gpio_request_failed;
-			}
+			        ret = gpio_request(di->keymap[i].gpio, "gpio_kp_in");
+			        if (ret) {
+				        pr_err("gpio_event_input_func: gpio_request "
+					        "failed for %d\n", di->keymap[i].gpio);
+				        goto err_gpio_request_failed;
+			        }
 			}
 #endif
 //E:LO

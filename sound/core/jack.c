@@ -24,7 +24,7 @@
 #include <linux/module.h>
 #include <sound/jack.h>
 #include <sound/core.h>
-#include <linux/switch.h>  // BAM_S C 131028 B285 B2123
+#include <linux/switch.h>  // BAM_S C 131028 B285
 
 static int jack_switch_types[] = {
 	SW_HEADPHONE_INSERT,
@@ -38,7 +38,7 @@ static int jack_switch_types[] = {
 	SW_UNSUPPORT_INSERT,
 };
 
-// BAM_S C 131028 B285 B2123
+// BAM_S C 131028 B285
 static ssize_t simple_remote_print_name(struct switch_dev *swdev, char *buf)
 {
 	//struct simple_remote_driver *jack =
@@ -80,7 +80,7 @@ static int snd_jack_dev_free(struct snd_device *device)
 	else
 		input_free_device(jack->input_dev);
 
-// BAM_S C 131028 B285 B2123
+// BAM_S C 131028 B285
 	if (jack->registered)
 		input_unregister_device(jack->indev_appkey);
 	else
@@ -100,7 +100,7 @@ static int snd_jack_dev_register(struct snd_device *device)
 	struct snd_card *card = device->card;
 	int err, i;
 
-// BAM_S C 131028 B285 B2123
+// BAM_S C 131028 B285
 	//if( !strcmp(jack->id, "Headset Jack"))
 		
 	if( !strcmp(jack->id, "Button Jack"))
@@ -188,7 +188,7 @@ int snd_jack_new(struct snd_card *card, const char *id, int type,
 
 	jack->id = kstrdup(id, GFP_KERNEL);
 
-// BAM_S C 131028 B285 B2123
+// BAM_S C 131028 B285
 	if( !strcmp(jack->id, "Headset Jack"))
 	{
 		printk("Headset Jack swdev register\n");
@@ -252,7 +252,7 @@ int snd_jack_new(struct snd_card *card, const char *id, int type,
 	return 0;
 
 fail_input:
-	input_free_device(jack->indev_appkey);  // BAM_S C 131028 B285 B2123
+	input_free_device(jack->indev_appkey);  // BAM_S C 131028 B285
 	input_free_device(jack->input_dev);
 	kfree(jack->id);
 	kfree(jack);
@@ -332,7 +332,7 @@ void snd_jack_report(struct snd_jack *jack, int status)
 		int testbit = SND_JACK_BTN_0 >> i;
 
 		if (jack->type & testbit)
-		// BAM_S C 140220 B1912 B2123
+		// BAM_S C 140220 B1912
 		{
 			if( jack->key[i] == BTN_3 )
 				input_report_key(jack->indev_appkey, jack->key[i],
@@ -340,7 +340,7 @@ void snd_jack_report(struct snd_jack *jack, int status)
 			else
 			input_report_key(jack->input_dev, jack->key[i],
 					 status & testbit);
-	}
+		}
 		// BAM_E C 140220
 	}
 
@@ -353,11 +353,11 @@ void snd_jack_report(struct snd_jack *jack, int status)
 	}
 
 	input_sync(jack->input_dev);
-	// BAM_S C 140220 B1912 B2123
+	// BAM_S C 140220 B1912
 	input_sync(jack->indev_appkey);
 	// BAM_E C 140220
 
-	// BAM_S C 131028 B285 B2123
+	// BAM_S C 131028 B285
 	if( !strcmp(jack->id, "Headset Jack"))
 	{
 		if( status )

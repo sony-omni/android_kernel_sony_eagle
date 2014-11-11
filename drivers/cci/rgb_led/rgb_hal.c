@@ -12,9 +12,6 @@
 #include "myLog.h"
 #include "rgb_interface.h"
 
-// To disable illumination LED in 58 project.
-#include <mach/cci_hw_id.h>
-
 #define CCI_CONTROL_PIN_STRING "cci,control_gpio"
 
 static int __init rgb_init(void);
@@ -30,10 +27,6 @@ static int rgb_probe(struct platform_device *);
 static int __init rgb_init(void) {
 	int ret = 0;
 	Fin();
-	if (get_cci_project_id() == CCI_PROJECTID_VY58_59 ) {
-		Fout("Ignore 58/59 project, would not initialize illumination LED.");
-		return -ENODEV;
-	}
 	ret = platform_driver_probe(&mDriver, rgb_probe);
 	Fout("ret: %d", ret);
 	return ret;
@@ -108,7 +101,7 @@ static int rgb_dev_pm_suspend(struct device *dev) {
         Ftr("Can not suspend");
         return 0;
     }
-//  if_release(); // TODO: must keep sync with attr_r/w and interface exist.
+    // if_release(); // TODO: must keep sync with attr_r/w and interface exist.
     Fout("Sleep...");
     return 0;
 }
@@ -119,7 +112,7 @@ static int rgb_dev_pm_resume(struct device *dev) {
     if (hw_resume()<0 ) {
 		return 0;
 	}
-//  if_create();
+ // if_create();
     return 0;
 }
 

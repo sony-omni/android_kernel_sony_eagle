@@ -24,14 +24,12 @@
 #include <asm/mach/arch.h>
 #include <asm/mach-types.h>
 
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 #ifdef CONFIG_CCI_KLOG
 #define CCI_RAMDUMP_SIZE                                    (0x400000) //4M
 #define CCI_RAMDUMP_START_ADDR_PHYSICAL     (CCI_KLOG_START_ADDR_PHYSICAL - CCI_RAMDUMP_SIZE)  //0x5C00000
 #endif // #ifdef CONFIG_CCI_KLOG
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 
 void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 {
@@ -54,7 +52,7 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 #endif
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
 #ifdef CONFIG_CCI_KLOG
-	printk("%s():start=0x%llX, size=0x%llX\n", __func__, (long long)base, (long long)size);
+	printk("early_init_dt_add_memory_arch():start=0x%llX, size=0x%llX\n", (long long)base, (long long)size);
 	if(base < (long long)CCI_KLOG_START_ADDR_PHYSICAL && base + size > (long long)CCI_KLOG_START_ADDR_PHYSICAL + (long long)CCI_KLOG_SIZE)
 	{
 		ret = arm_add_memory(base, (long long)CCI_KLOG_START_ADDR_PHYSICAL - base);
@@ -63,8 +61,7 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 			ret = arm_add_memory((long long)CCI_KLOG_START_ADDR_PHYSICAL + (long long)CCI_KLOG_SIZE, base + size - (long long)CCI_KLOG_START_ADDR_PHYSICAL - (long long)CCI_KLOG_SIZE);
 		}
 	}
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 	else if(base < (long long)CCI_RAMDUMP_START_ADDR_PHYSICAL && base + size > (long long)CCI_RAMDUMP_START_ADDR_PHYSICAL + (long long)CCI_RAMDUMP_SIZE)
 	{
 		ret = arm_add_memory(base, (long long)CCI_RAMDUMP_START_ADDR_PHYSICAL - base);
@@ -73,8 +70,7 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 			ret = arm_add_memory((long long)CCI_RAMDUMP_START_ADDR_PHYSICAL + (long long)CCI_RAMDUMP_SIZE, base + size - (long long)CCI_RAMDUMP_START_ADDR_PHYSICAL - (long long)CCI_RAMDUMP_SIZE);
 		}
 	}
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 	else
 	{
 		ret = arm_add_memory(base, size);

@@ -39,8 +39,6 @@
 #include <linux/cyttsp4_proximity.h>
 #include <linux/cyttsp4_platform.h>
 
-#include <mach/cci_hw_id.h>
-
 #include "cyttsp4_regs.h"
 #include "cyttsp4_devtree.h"
 
@@ -644,10 +642,7 @@ static struct cyttsp4_core_platform_data *create_and_get_core_pdata(
 #endif
 	pdata->irq_stat = cyttsp4_irq_stat;
 
-    if(get_cci_project_id() == CCI_PROJECTID_VY58_59)
-        pdata->loader_pdata = &_cyttsp4_loader_platform_data_vy58;
-    else
-	    pdata->loader_pdata = &_cyttsp4_loader_platform_data;
+	pdata->loader_pdata = &_cyttsp4_loader_platform_data;
 
 	return pdata;
 

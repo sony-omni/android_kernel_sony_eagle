@@ -164,7 +164,7 @@ enum DATATYPE{
 static u16 shipping_version =0x0600;
 
 static struct raw_data_range ftm_raw_data[TOTAL_SUN] = {
-	{18, 5, 43, 14, 131, -324, 15, -15},      // main source(truly)
+	{30, 5, 47, 10, 168, -359, 25, -25},      // main source(truly)
 	{80, 5, 80, 5, 1000, -1500, 30, -30},      // second source(Jtouch)
 	{0, 0, 0, 0, 0, 0, 0, 0},      // third source
 	{0, 0, 0, 0, 0, 0, 0, 0},      // fourth source
@@ -5453,8 +5453,6 @@ static int cyttsp4_core_probe(struct cyttsp4_core *core)
 //	dev_dbg(dev, "%s: debug on\n", __func__);
 	dev_vdbg(dev, "%s: verbose debug on\n", __func__);
 
-    shipping_version = (get_cci_project_id() == CCI_PROJECTID_VY58_59)?0x0800:0x0600;
-
 	if (pdata == NULL) {
 		dev_err(dev, "%s: Missing platform data\n", __func__);
 		rc = -ENODEV;
@@ -5585,7 +5583,7 @@ static int cyttsp4_core_probe(struct cyttsp4_core *core)
 		goto error_startup;
 	}
 
-	device_init_wakeup(dev, 0);
+	device_init_wakeup(dev, 1);
 
 	printk("[TP] Sillicon ID = 0x%x, Panel ID = 0x%x\n", cd->core->sillicon_id, cd->core->panel_info);
 	cyttsp4_assign_factory_criteria(cd);

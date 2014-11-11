@@ -1000,17 +1000,13 @@ static void kionix_accel_grp4_report_accel_data(struct kionix_accel_driver *acce
 				acceld->accel_data[acceld->axis_map_x] = (acceld->negate_x ? -x : x) + acceld->accel_cali[acceld->axis_map_x];
 				acceld->accel_data[acceld->axis_map_y] = (acceld->negate_y ? -y : y) + acceld->accel_cali[acceld->axis_map_y];
 				acceld->accel_data[acceld->axis_map_z] = (acceld->negate_z ? -z : z) + acceld->accel_cali[acceld->axis_map_z];
-                // printk("[CCI]kionix_i2c_read: x=%d y=%d z=%d , accel_data_x=%d accel_data_y=%d accel_data_z=%d \n", x, y, z, acceld->accel_data[acceld->axis_map_x], acceld->accel_data[acceld->axis_map_y], acceld->accel_data[acceld->axis_map_z]);
-				// if(atomic_read(&acceld->accel_input_event) > 0) {
+                //printk("[CCI]kionix_i2c_read: x=%d y=%d z=%d , accel_data_x=%d accel_data_y=%d accel_data_z=%d \n", x, y, z, acceld->accel_data[acceld->axis_map_x], acceld->accel_data[acceld->axis_map_y], acceld->accel_data[acceld->axis_map_z]);
+				if(atomic_read(&acceld->accel_input_event) > 0) {
 					input_report_abs(acceld->input_dev, ABS_X, acceld->accel_data[acceld->axis_map_x]);
 					input_report_abs(acceld->input_dev, ABS_Y, acceld->accel_data[acceld->axis_map_y]);
 					input_report_abs(acceld->input_dev, ABS_Z, acceld->accel_data[acceld->axis_map_z]);
 					input_sync(acceld->input_dev);
-					
-					// add by Rick Hsu
-					//printk("KXTJ2 input_report_abs: ABS_X=%d, ABS_Y=%d, ABS_Z=%d,\n",ABS_X,ABS_Y,ABS_Z);					
-					// add by Rick Hsu
-				// }
+				}
 
 				write_unlock(&acceld->rwlock_accel_data);
 			}
@@ -1299,16 +1295,12 @@ static int kionix_accel_input_open(struct input_dev *input)
 
 	atomic_inc(&acceld->accel_input_event);
 
-	printk("KXTJ2 into kionix_accel_input_open"); // add by rick
-	
 	return 0;
 }
 
 static void kionix_accel_input_close(struct input_dev *dev)
 {
 	struct kionix_accel_driver *acceld = input_get_drvdata(dev);
-
-	printk("KXTJ2 into kionix_accel_input_close"); // add by rick
 
 	atomic_dec(&acceld->accel_input_event);
 }
@@ -1672,7 +1664,7 @@ static ssize_t kionix_accel_get_cali(struct device *dev,
 	struct kionix_accel_driver *acceld = i2c_get_clientdata(client);
 	int calibration[3];
 
-			read_lock(&acceld->rwlock_accel_data);
+			read_lock(&acceld->rwlock_accel_data);	
 				calibration[0] = acceld->accel_cali[acceld->axis_map_x];
 				calibration[1] = acceld->accel_cali[acceld->axis_map_y];
 				calibration[2] = acceld->accel_cali[acceld->axis_map_z];

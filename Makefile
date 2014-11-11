@@ -373,12 +373,8 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
-		   -DCONFIG_CCI_PRINTK_TIME
-
-ifneq ($(TARGET_BUILD_VARIANT),user)
-KBUILD_CFLAGS	+= -DCONFIG_CCI_PRINTK_TIME_ISO_8601
-endif
-
+		   -DCONFIG_CCI_PRINTK_TIME \
+		   -DCONFIG_CCI_PRINTK_TIME_ISO_8601
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
 KBUILD_AFLAGS   := -D__ASSEMBLY__
@@ -649,28 +645,17 @@ ifeq ($(CCI_KLOG),1)
 endif # ifeq ($(CCI_KLOG),1)
 #[VY5x] <== CCI KLog, added by Jimmy@CCI
 
-#/* KevinA_Lin, 20140205 */
+#/* KevinA_Lin, 20130906 */
 ifeq ($(CCI_FORCE_RAMDUMP),1)
 		KBUILD_CFLAGS	+= -DCCI_FORCE_RAMDUMP=y
 endif
-#/* KevinA_Lin, 20140205 */
+#/* KevinA_Lin, 20130906 */
 
-#/* KevinA_Lin, 20140612 */
-ifeq ($(CCI_WAKELOCK_DEBUG),1)
-		KBUILD_CFLAGS	+= -DCCI_WAKELOCK_DEBUG=y
-endif
-#/* KevinA_Lin, 20140612 */
 #S:LO for sim detection
 ifeq ($(CCI_SIM_DET_EAGLE_DS),1)
 	KBUILD_CFLAGS	+= -DCCI_SIM_DET_EAGLE_DS=y
 endif
 #E:LO for sim detection
-
-#[VY5X] S AlexKuan Bug:2199 Kernel panic - not syncing: Attempted to kill init {
-ifeq ($(CCI_TRACE_INIT_SERVICE),1)
-	KBUILD_CFLAGS	+= -DCCI_TRACE_INIT_SERVICE=y
-endif
-#[VY5X] E AlexKuan Bug:2199 Kernel panic - not syncing: Attempted to kill init }
 
 # We trigger additional mismatches with less inlining
 ifdef CONFIG_DEBUG_SECTION_MISMATCH
@@ -921,7 +906,6 @@ endef
 # Generate .S file with all kernel symbols
 quiet_cmd_kallsyms = KSYM    $@
       cmd_kallsyms = $(NM) -n $< | $(KALLSYMS) \
-                     --page-offset=$(CONFIG_PAGE_OFFSET) \
                      $(if $(CONFIG_KALLSYMS_ALL),--all-symbols) > $@
 
 .tmp_kallsyms1.o .tmp_kallsyms2.o .tmp_kallsyms3.o: %.o: %.S scripts FORCE

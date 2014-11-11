@@ -1499,7 +1499,6 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	struct sdhci_host *host;
 	bool present;
 	unsigned long flags;
-	u32 tuning_opcode;
 
 	host = mmc_priv(mmc);
 
@@ -1510,8 +1509,7 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		mrq->cmd->error = -EIO;
 		if (mrq->data)
 			mrq->data->error = -EIO;
-		mmc_request_done(host->mmc, mrq);
-		sdhci_runtime_pm_put(host);
+		tasklet_schedule(&host->finish_tasklet);
 		return;
 	}
 
@@ -1555,25 +1553,14 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		 * is no on-going data transfer. If so, we need to execute
 		 * tuning procedure before sending command.
 		 */
-		if ((mrq->cmd->opcode != MMC_SEND_TUNING_BLOCK) &&
-		    (mrq->cmd->opcode != MMC_SEND_TUNING_BLOCK_HS400) &&
-		    (mrq->cmd->opcode != MMC_SEND_TUNING_BLOCK_HS200) &&
-		    (host->flags & SDHCI_NEEDS_RETUNING) &&
+		if ((host->flags & SDHCI_NEEDS_RETUNING) &&
 		    !(present_state & (SDHCI_DOING_WRITE | SDHCI_DOING_READ))) {
-			if (mmc->card) {
-				/* eMMC uses cmd21 but sd and sdio use cmd19 */
-				tuning_opcode =
-					mmc->card->type == MMC_TYPE_MMC ?
-					MMC_SEND_TUNING_BLOCK_HS200 :
-					MMC_SEND_TUNING_BLOCK;
-				host->mrq = NULL;
-				spin_unlock_irqrestore(&host->lock, flags);
-				sdhci_execute_tuning(mmc, tuning_opcode);
-				spin_lock_irqsave(&host->lock, flags);
+			spin_unlock_irqrestore(&host->lock, flags);
+			sdhci_execute_tuning(mmc, mrq->cmd->opcode);
+			spin_lock_irqsave(&host->lock, flags);
 
-				/* Restore original mmc_request structure */
-				host->mrq = mrq;
-			}
+			/* Restore original mmc_request structure */
+			host->mrq = mrq;
 		}
 
 		if (mrq->sbc && !(host->flags & SDHCI_AUTO_CMD23))
@@ -2541,8 +2528,6 @@ static void sdhci_cmd_irq(struct sdhci_host *host, u32 intmask)
 	}
 
 	if (host->cmd->error) {
-		if (host->cmd->error == -EILSEQ)
-			host->flags |= SDHCI_NEEDS_RETUNING;
 		tasklet_schedule(&host->finish_tasklet);
 		return;
 	}
@@ -2671,11 +2656,8 @@ static void sdhci_data_irq(struct sdhci_host *host, u32 intmask)
 							    SDHCI_COMMAND));
 			if ((command != MMC_SEND_TUNING_BLOCK_HS400) &&
 			    (command != MMC_SEND_TUNING_BLOCK_HS200) &&
-			    (command != MMC_SEND_TUNING_BLOCK)) {
+			    (command != MMC_SEND_TUNING_BLOCK))
 				pr_msg = true;
-				if (intmask & SDHCI_INT_DATA_CRC)
-					host->flags |= SDHCI_NEEDS_RETUNING;
-			}
 		} else {
 			pr_msg = true;
 		}
@@ -3229,26 +3211,14 @@ int sdhci_add_host(struct sdhci_host *host)
 	if (0 == strncmp((const char*)mmc_hostname(mmc),"mmc1",sizeof("mmc1")))
 	{
 		int cci_hwid = CCI_HWID_INVALID;
-		int cci_projectid = CCI_PROJECTID_INVALID;
 
 		cci_hwid = get_cci_hw_id();
-		cci_projectid = get_cci_project_id();
-		printk(KERN_ERR "[%s] hostname[%s] cci_hwid[%d] cci_projectid[%d]\n",__func__,mmc_hostname(mmc),cci_hwid,cci_projectid);
+		printk(KERN_ERR "[%s] hostname[%s] cci_hwid[%d]\n",__func__,mmc_hostname(mmc),cci_hwid);
 
-		if (CCI_PROJECTID_VY58_59 == cci_projectid)
-		{
-			if (cci_hwid < CCI_HWID_DVT2)
-			    mmc->f_max = UHS_SDR25_MAX_DTR;
-			else
-			    mmc->f_max = host->max_clk;
-		}
+		if (cci_hwid < CCI_HWID_PVT)
+		    mmc->f_max = UHS_SDR25_MAX_DTR;
 		else
-		{
-			if (cci_hwid < CCI_HWID_PVT)
-			    mmc->f_max = UHS_SDR25_MAX_DTR;
-			else
-			    mmc->f_max = host->max_clk;
-		}
+	mmc->f_max = host->max_clk;
 	}
 	else
 	{

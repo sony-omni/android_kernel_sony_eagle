@@ -29,7 +29,7 @@
 #include "q6voice.h"
 
 
-#define TIMEOUT_MS 300
+#define TIMEOUT_MS 200
 
 
 #define CMD_STATUS_SUCCESS 0
@@ -348,11 +348,6 @@ static struct voice_data *voice_get_session_by_idx(int idx)
 {
 	return ((idx < 0 || idx >= MAX_VOC_SESSIONS) ?
 				NULL : &common.voice[idx]);
-}
-
-static bool is_voice_session(u32 session_id)
-{
-	return (session_id == common.voice[VOC_PATH_PASSIVE].session_id);
 }
 
 static bool is_voip_session(u32 session_id)
@@ -943,7 +938,6 @@ static int voice_destroy_mvm_cvs_session(struct voice_data *v)
 
 	if (is_voip_session(v->session_id) ||
 	    is_qchat_session(v->session_id) ||
-	    is_volte_session(v->session_id) ||
 	    v->voc_state == VOC_ERROR) {
 		/* Destroy CVS. */
 		pr_debug("%s: CVS destroy session\n", __func__);
@@ -3409,10 +3403,6 @@ static int voice_destroy_vocproc(struct voice_data *v)
 	mvm_handle = voice_get_mvm_handle(v);
 	cvp_handle = voice_get_cvp_handle(v);
 
-	/* disable slowtalk if st_enable is set */
-	if (v->st_enable)
-		voice_send_set_pp_enable_cmd(v, MODULE_ID_VOICE_MODULE_ST, 0);
-
 	/* stop playback or recording */
 	v->music_info.force = 1;
 	voice_cvs_stop_playback(v);
@@ -4282,10 +4272,8 @@ int voc_start_playback(uint32_t set, uint16_t port_id)
 		v = voice_get_session(voc_get_session_id(VOICE_SESSION_NAME));
 	else if (port_id == VOICE2_PLAYBACK_TX)
 		v = voice_get_session(voc_get_session_id(VOICE2_SESSION_NAME));
-	else
-		pr_err("%s: Invalid port_id 0x%x", __func__, port_id);
 
-	while (v != NULL) {
+	if (v != NULL) {
 		mutex_lock(&v->lock);
 		v->music_info.port_id = port_id;
 		v->music_info.play_enable = set;
@@ -4305,17 +4293,8 @@ int voc_start_playback(uint32_t set, uint16_t port_id)
 		}
 
 		mutex_unlock(&v->lock);
-
-		/* Voice and VoLTE call use the same pseudo port and hence
-		 * use the same mixer control. So enable incall delivery
-		 * for VoLTE as well with Voice.
-		 */
-		if (is_voice_session(v->session_id)) {
-			v = voice_get_session(voc_get_session_id(
-							VOLTE_SESSION_NAME));
-		} else {
-			break;
-		}
+	} else {
+		pr_err("%s: Invalid port_id 0x%x", __func__, port_id);
 	}
 
 	return ret;
@@ -4511,62 +4490,6 @@ int voc_set_tx_mute(uint32_t session_id, uint32_t dir, uint32_t mute,
 
 	return ret;
 }
-
-// LocalAnsweringMachine , START
-int voc_set_tx_device_mute(uint32_t session_id, uint32_t mute,
-					uint32_t ramp_duration)
-{
-	struct voice_data *v = NULL;
-	int ret = 0;
-	struct voice_session_itr itr;
-
-	voice_itr_init(&itr, session_id);
-	while (voice_itr_get_next_session(&itr, &v)) {
-		if (v != NULL) {
-			mutex_lock(&v->lock);
-			v->dev_tx.dev_mute = mute;
-			v->dev_tx.dev_mute_ramp_duration_ms =
-							ramp_duration;
-			if (((v->voc_state == VOC_RUN) ||
-				(v->voc_state == VOC_STANDBY)) &&
-				(v->lch_mode == 0))
-				ret = voice_send_device_mute_cmd(v,
-						VSS_IVOLUME_DIRECTION_TX,
-						v->dev_tx.dev_mute,
-						ramp_duration);
-			mutex_unlock(&v->lock);
-		} else {
-			pr_err("%s: invalid session_id 0x%x\n", __func__,
-				session_id);
-
-			ret = -EINVAL;
-			break;
-		}
-	}
-
-	return ret;
-}
-
-int voc_get_tx_device_mute(uint32_t session_id)
-{
-	struct voice_data *v = voice_get_session(session_id);
-	int ret = 0;
-
-	if (v == NULL) {
-		pr_err("%s: invalid session_id 0x%x\n", __func__, session_id);
-
-		return -EINVAL;
-}
-
-	mutex_lock(&v->lock);
-
-	ret = v->dev_tx.dev_mute;
-
-	mutex_unlock(&v->lock);
-
-	return ret;
-}
-// LocalAnsweringMachine , END
 
 int voc_set_rx_device_mute(uint32_t session_id, uint32_t mute,
 					uint32_t ramp_duration)

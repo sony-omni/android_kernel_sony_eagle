@@ -13,11 +13,14 @@ if CCI_DRIVERS
 source "drivers/cci/klog/Kconfig"
 #[VY5x] <== CCI KLog, added by Jimmy@CCI
 
-source "drivers/cci/cci_stuff/Kconfig"
-
 #[VY5x] S:LE
 source "drivers/cci/cci_kernel_info/Kconfig"
 #[VY5x] E:LE
+
+#[VY5x] ==> SOMC XSSM driver by Bato@CCI
+source "drivers/cci/somc_xssm/Kconfig"
+#[VY5x] <== SOMC XSSM driver by Bato@CCI
+source "drivers/cci/cci_stuff/Kconfig"
 
 #[VY5x] ==> DDR parameter dump, added by Grace@CCI
 source "drivers/cci/ddr_param_dump/Kconfig"

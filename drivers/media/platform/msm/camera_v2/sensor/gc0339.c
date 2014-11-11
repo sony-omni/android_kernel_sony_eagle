@@ -469,7 +469,7 @@ int32_t gc0339_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 			if (data->gpio_conf->gpio_num_info->gpio_num
 				[power_setting->seq_val]){
 				if((gpiotestnum == 69) && (gpio69_count == 2)){
-					pr_err("[VY5X][CTS]Avoid main camera preview fail in CTS\n");
+					CDBG("[VY5X][CTS]Avoid main camera preview fail in CTS\n");
 				}
 				else {
 				gpio_set_value_cansleep(
@@ -540,7 +540,7 @@ int32_t gc0339_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 			s_ctrl->sensordata->sensor_name);
 		return rc;
 	}
-
+	
 	/**/
 	if(checksubcam_ID == 0) {
 	if(strcmp("SKUAA_ST_gc0339",s_ctrl->sensordata->sensor_name)==0) {

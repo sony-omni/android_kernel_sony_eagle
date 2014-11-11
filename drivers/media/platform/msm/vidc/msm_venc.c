@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -168,7 +168,7 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.name = "Intra Period for P frames",
 		.type = V4L2_CTRL_TYPE_INTEGER,
 		.minimum = 0,
-		.maximum = INT_MAX,
+		.maximum = 10*DEFAULT_FRAME_RATE,
 		.default_value = 2*DEFAULT_FRAME_RATE-1,
 		.step = 1,
 		.menu_skip_mask = 0,
@@ -461,26 +461,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.step = 1,
 		.menu_skip_mask = 0,
 		.qmenu = NULL,
-		.cluster = MSM_VENC_CTRL_CLUSTER_QP,
-	},
-	{
-		.id = V4L2_CID_MPEG_VIDC_VIDEO_VP8_MIN_QP,
-		.name = "VP8 Minimum QP",
-		.type = V4L2_CTRL_TYPE_INTEGER,
-		.minimum = 1,
-		.maximum = 128,
-		.default_value = 1,
-		.step = 1,
-		.cluster = MSM_VENC_CTRL_CLUSTER_QP,
-	},
-	{
-		.id = V4L2_CID_MPEG_VIDC_VIDEO_VP8_MAX_QP,
-		.name = "VP8 Maximum QP",
-		.type = V4L2_CTRL_TYPE_INTEGER,
-		.minimum = 1,
-		.maximum = 128,
-		.default_value = 128,
-		.step = 1,
 		.cluster = MSM_VENC_CTRL_CLUSTER_QP,
 	},
 	{
@@ -1703,26 +1683,6 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 		pdata = &qp_range;
 		break;
 	}
-	case V4L2_CID_MPEG_VIDC_VIDEO_VP8_MIN_QP: {
-		struct v4l2_ctrl *qp_max;
-		qp_max = TRY_GET_CTRL(V4L2_CID_MPEG_VIDC_VIDEO_VP8_MAX_QP);
-		property_id = HAL_PARAM_VENC_SESSION_QP_RANGE;
-		qp_range.layer_id = 0;
-		qp_range.max_qp = qp_max->val;
-		qp_range.min_qp = ctrl->val;
-		pdata = &qp_range;
-		break;
-	}
-	case V4L2_CID_MPEG_VIDC_VIDEO_VP8_MAX_QP: {
-		struct v4l2_ctrl *qp_min;
-		qp_min = TRY_GET_CTRL(V4L2_CID_MPEG_VIDC_VIDEO_VP8_MIN_QP);
-		property_id = HAL_PARAM_VENC_SESSION_QP_RANGE;
-		qp_range.layer_id = 0;
-		qp_range.max_qp = ctrl->val;
-		qp_range.min_qp = qp_min->val;
-		pdata = &qp_range;
-		break;
-	}
 	case V4L2_CID_MPEG_VIDEO_MULTI_SLICE_MODE: {
 		int temp = 0;
 
@@ -2440,16 +2400,8 @@ int msm_venc_g_fmt(struct msm_vidc_inst *inst, struct v4l2_format *f)
 				buff_req_buffer->buffer_size : 0;
 		}
 		for (i = 0; i < fmt->num_planes; ++i) {
-			if (f->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-				inst->bufq[OUTPUT_PORT].vb2_bufq.
-				plane_sizes[i] =
-				f->fmt.pix_mp.plane_fmt[i].sizeimage;
-			} else if (f->type ==
-				V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-				inst->bufq[CAPTURE_PORT].vb2_bufq.
-				plane_sizes[i] =
-				f->fmt.pix_mp.plane_fmt[i].sizeimage;
-			}
+			inst->bufq[CAPTURE_PORT].vb2_bufq.plane_sizes[i] =
+			f->fmt.pix_mp.plane_fmt[i].sizeimage;
 		}
 	} else {
 		dprintk(VIDC_ERR,

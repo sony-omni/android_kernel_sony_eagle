@@ -36,7 +36,7 @@
 #include "peripheral-loader.h"
 #include "scm-pas.h"
 
-//S [VY52/VY55][bug_1807] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
+//S [VY52/VY55][bug_486] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
 #include <linux/fs.h>
 #include <linux/time.h>
 #include <asm/cputime.h>
@@ -44,7 +44,7 @@
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
 #include <linux/rtc.h>
 #endif // #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
-//E [VY52/VY55][bug_1807] Frank_Chan add for when modem / WCNSS subsystem restart, failure reason shall be stored at internel sd
+//E [VY52/VY55][bug_486] Frank_Chan add for when modem / WCNSS subsystem restart, failure reason shall be stored at internel sd
 
 #define PRONTO_PMU_COMMON_GDSCR				0x24
 #define PRONTO_PMU_COMMON_GDSCR_SW_COLLAPSE		BIT(0)
@@ -95,14 +95,13 @@ struct pronto_data {
 	bool crash;
 	struct delayed_work cancel_vote_work;
 	struct ramdump_device *ramdump_dev;
-        struct work_struct wcnss_wdog_bite_work;
-//S [VY52/VY55][bug_1807] Frank_Chan add
+//S [VY52/VY55][bug_486] Frank_Chan add
 	struct delayed_work subsys_crash_work;
-//E [VY52/VY55][bug_1807] Frank_Chan add
+//E [VY52/VY55][bug_486] Frank_Chan add
 };
 
 
-//S [VY52/VY55][bug_1807] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
+//S [VY52/VY55][bug_486] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
 struct subsys_timestamp {
 	int year;
 	int month;
@@ -152,7 +151,7 @@ char pronto_crash_reason1[]= "Fatal error on the wcnss\n";
 char pronto_crash_reason2[CRASH_INFO_SIZE]={0};
 char pronto_fail_str[]= "wcnss subsystem failure reason: ";
 extern char work_buf[72];
-//E [VY52/VY55][bug_1807] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
+//E [VY52/VY55][bug_486] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
 
 static int pil_pronto_make_proxy_vote(struct pil_desc *pil)
 {
@@ -361,27 +360,26 @@ static void log_wcnss_sfr(void)
 		pr_err("wcnss subsystem failure reason: %.81s\n",
 				smem_reset_reason);
 
-//S [VY52/VY55][bug_1807] Frank_Chan add
+//S [VY52/VY55][bug_486] Frank_Chan add
 	{
 		unsigned int nStringSize = 0;
 
 		nStringSize = strlen(pronto_fail_str)+min(smem_reset_size, sizeof(pronto_crash_reason2));
-
+		
 		if (nStringSize > CRASH_INFO_SIZE) {
 			nStringSize = CRASH_INFO_SIZE;
 		}
 		memset(pronto_crash_reason2, 0, CRASH_INFO_SIZE);
 		snprintf(pronto_crash_reason2, nStringSize , "%s%s", pronto_fail_str, smem_reset_reason );
 	}
-//E [VY52/VY55][bug_1807] Frank_Chan add
+//E [VY52/VY55][bug_486] Frank_Chan add
 
 		memset(smem_reset_reason, 0, smem_reset_size);
 		wmb();
 	}
 }
 
-//S [VY52/VY55][bug_1807] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//S [VY52/VY55][bug_486] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
 static int is_leap(unsigned int y)
 {
 	return y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
@@ -426,11 +424,9 @@ static void pronto_timestamp(int tm)
 	pronto_t.month    = i + 1;
 
 }
-#endif
 
 static void wcnss_subsys_crash_info(struct work_struct *work)
 {
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
 	struct file* wcnss_filep;
 	int result = 0;
 	struct timespec current_time;
@@ -478,9 +474,8 @@ static void wcnss_subsys_crash_info(struct work_struct *work)
 
       if(result < 0)
       pr_err("wcnss_subsys_crash_info: write file fail, result=%d\n",result);
-#endif
 }
-//E [VY52/VY55][bug_1807] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
+//E [VY52/VY55][bug_486] Frank_Chan add for when modem/WCNSS subsystem restart, failure reason shall be stored at internel sd
 
 static void restart_wcnss(struct pronto_data *drv)
 {
@@ -503,21 +498,11 @@ static irqreturn_t wcnss_err_fatal_intr_handler(int irq, void *dev_id)
 	drv->restart_inprogress = true;
 	restart_wcnss(drv);
 
-//S [VY52/VY55][bug_1807] Frank_Chan add
+//S [VY52/VY55][bug_486] Frank_Chan add
 	schedule_delayed_work(&drv->subsys_crash_work, msecs_to_jiffies(5000));
-//E [VY52/VY55][bug_1807] Frank_Chan add
+//E [VY52/VY55][bug_486] Frank_Chan add
 
 	return IRQ_HANDLED;
-}
-
-static void wcnss_wdog_bite_work_hdlr(struct work_struct *wcnss_work)
-{
-	struct pronto_data *drv = container_of(wcnss_work, struct pronto_data,
-		wcnss_wdog_bite_work);
-
-	wcnss_log_debug_regs_on_bite();
-
-	restart_wcnss(drv);
 }
 
 static irqreturn_t wcnss_wdog_bite_irq_hdlr(int irq, void *dev_id)
@@ -532,9 +517,10 @@ static irqreturn_t wcnss_wdog_bite_irq_hdlr(int irq, void *dev_id)
 		pr_err("Ignoring wcnss bite irq, restart in progress\n");
 		return IRQ_HANDLED;
 	}
+	wcnss_log_debug_regs_on_bite();
 
 	drv->restart_inprogress = true;
-	schedule_work(&drv->wcnss_wdog_bite_work);
+	restart_wcnss(drv);
 
 	return IRQ_HANDLED;
 }
@@ -687,11 +673,10 @@ static int __devinit pil_pronto_probe(struct platform_device *pdev)
 	drv->subsys_desc.wdog_bite_handler = wcnss_wdog_bite_irq_hdlr;
 
 	INIT_DELAYED_WORK(&drv->cancel_vote_work, wcnss_post_bootup);
-	INIT_WORK(&drv->wcnss_wdog_bite_work, wcnss_wdog_bite_work_hdlr);
 
-//S [VY52/VY55][bug_1807] Frank_Chan add
+//S [VY52/VY55][bug_486] Frank_Chan add
 	INIT_DELAYED_WORK(&drv->subsys_crash_work, wcnss_subsys_crash_info);
-//E [VY52/VY55][bug_1807] Frank_Chan add
+//E [VY52/VY55][bug_486] Frank_Chan add
 
 	drv->subsys = subsys_register(&drv->subsys_desc);
 	if (IS_ERR(drv->subsys)) {

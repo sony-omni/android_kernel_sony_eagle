@@ -17,7 +17,7 @@
 #include <linux/rwsem.h>
 #include <linux/leds.h>
 
-//S:EllenLu 20140123 ,[LED]add for SOMC Illumination
+//S:EllenLu 20130709 ,[LED]add for SOMC Illumination
 
 static inline void led_set_flashmode(struct led_classdev *led_cdev,
 					enum led_op_mode modevalue)
@@ -42,7 +42,7 @@ static inline void led_set_offms(struct led_classdev *led_cdev,
 	if (!(led_cdev->flags & LED_SUSPENDED))
 		led_cdev->blinkoffms_set(led_cdev, blinkoffms);
 }
-//E:EllenLu 20140123 ,[LED]add for SOMC Illumination
+//E:EllenLu 20130709 ,[LED]add for SOMC Illumination
 
 static inline void led_set_brightness(struct led_classdev *led_cdev,
 					enum led_brightness value)

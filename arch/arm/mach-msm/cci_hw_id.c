@@ -10,25 +10,25 @@
 #include <mach/msm_smsm.h>
 #endif
 
-static int cci_hw_id = CCI_HWID_INVALID;
-static int cci_project_id = CCI_PROJECTID_INVALID;
-static int cci_customer_id = CCI_CUSTOMERID_INVALID;
-static int cci_sim_id = CCI_SIMID_INVALID;
-static int cci_band_id = CCI_BANDID_INVALID;
+static int cci_hw_id = 0;
+static int cci_project_id = 0;
+static int cci_customer_id = 0;
+static int cci_sim_id = 0;
+static int cci_band_id = 0;
 
 #define CONFIG_CCI_HWID_READ_GPIO 1
 #if CONFIG_CCI_HWID_READ_GPIO
 static const char cci_hwid_gpio_label[][CCI_HWID_TYPE_STRLEN] =
 {
-	"gpio_project_id_2",
-	"gpio_project_id_1",
-	"gpio_sim_id",
-	"gpio_band_id_1",
-	"gpio_band_id_2",
-	"gpio_hw_id_1",
-	"gpio_hw_id_2",
-	"gpio_hw_id_3",
-	"gpio_customer_id"
+"gpio_project_id_2",
+"gpio_project_id_1",
+"gpio_sim_id",
+"gpio_band_id_1",
+"gpio_band_id_2",
+"gpio_hw_id_1",
+"gpio_hw_id_2",
+"gpio_hw_id_3",
+"gpio_customer_id"
 };
 
 static unsigned cci_hwid_gpio_table[NUM_CCI_HWID_GPIO] = {
@@ -62,43 +62,43 @@ enum cci_hwid_gpio_num {
 
 static const char cci_sim_type_str[][CCI_HWID_TYPE_STRLEN] = 
 {
-	"Single sim",
-	"Dual sim",
-	"Invalid"
+"Single sim",
+"Dual sim",
+"Invalid"
 };
 
 static const char cci_board_type_str[][CCI_HWID_TYPE_STRLEN] = 
 {
-	"EVT board",
-	"DVT1 board",
-	"DVT1-1 board",
-	"DVT2 board",
-	"DVT3 board",
-	"PVT board",
-	"MP board",
-	"Invalid"
+"EVT board",
+"DVT1 board",
+"DVT1-1 board",
+"DVT2 board",
+"DVT3 board",
+"PVT board",
+"MP board",
+"Invalid"
 };
 
 static const char cci_band_type_str[][CCI_HWID_TYPE_STRLEN] = 
 {
-	"EU band",
-	"US band",
-	"Invalid"
+"EU band",
+"US band",
+"Invalid"
 };
 
 static const char cci_proj_name_str[][CCI_HWID_TYPE_STRLEN] = 
 {
-	"VY52_53",
-	"VY55_56",
-	"VY58_59",
-	"Undefined"
+"VY52_53",
+"VY55_56",
+"VY51",
+"Undefined"
 };
 
 static const char cci_customer_type_str[][CCI_HWID_TYPE_STRLEN] = 
 {
-	"Customer",
-	"CCI",
-	"Invalid"
+"Customer",
+"CCI",
+"Invalid"
 };
 
 #ifdef HWID_USE_SHARED_MEMORY
@@ -130,16 +130,16 @@ static void cci_hwid_read_smem(void)
 	unsigned smem_bandid = 0;
 
 
-	printk(KERN_INFO "kernel SMEM_ID_VENDOR0 = %d\n", SMEM_ID_VENDOR0);
+	printk(KERN_NOTICE "kernel SMEM_ID_VENDOR0 = %d\n", SMEM_ID_VENDOR0);
 	smem_value = *(unsigned int *)(smem_get_entry(SMEM_ID_VENDOR0, &hwid_smem_size));
-	printk(KERN_INFO "hwid check = %d\n", smem_value);
+	printk(KERN_NOTICE "hwid check = %d\n", smem_value);
 
 	smem_hwid = GET_CCI_HWID_VALUE(smem_value);
 	smem_projectid = GET_CCI_PROJECTID_VALUE(smem_value);
 	smem_simid = GET_CCI_SIMID_VALUE(smem_value);
 	smem_bandid = GET_CCI_BANDID_VALUE(smem_value);
 	
-	printk(KERN_INFO "smem check hwid = %d, projectid = %d, simid = %d, bandid = %d\n", smem_hwid, smem_projectid, smem_simid, smem_bandid);
+	printk(KERN_NOTICE "smem check hwid = %d, projectid = %d, simid = %d, bandid = %d\n", smem_hwid, smem_projectid, smem_simid, smem_bandid);
 	
 	return;
 }
@@ -183,13 +183,11 @@ static void config_cci_hwid_gpio(void)
 		}
 		gpio_free(cci_hwid_gpio_table[i]);
 	}
-	printk(KERN_INFO "In %s, config cci hwid gpio done\n", "config_cci_hwid_gpio");
+	printk(KERN_ERR "In %s, config cci hwid gpio done\n", "config_cci_hwid_gpio");
 }
 
 static void cci_hw_det_gpio(void) 
 {
-	int is_waterproof = 0;
-
 	config_cci_hwid_gpio();
 	cci_project_id  = cci_hw_get_type(GPIO_INDEX_PROJ_ID, GPIO_NUM_PROJ_ID);
 	cci_sim_id 	  	 = cci_hw_get_type(GPIO_INDEX_SIM_ID, GPIO_NUM_SIM_ID);
@@ -199,19 +197,17 @@ static void cci_hw_det_gpio(void)
 
 	if (cci_project_id == CCI_PROJECTID_VY55_56) {
 		cci_sim_id = CCI_SIMID_SS;
-		is_waterproof = gpio_get_value(GPIO_CCI_WATERPROOF_ID);
-		if (is_waterproof)
-			cci_project_id = CCI_PROJECTID_VY58_59;
 	}
 	
-	printk(KERN_INFO "In %s, Read CCI HW ID from GPIO\n", "cci_hw_det_gpio");
-	printk(KERN_INFO "cci_project_id=%d, cci_sim_id=%d, cci_band_id=%d, cci_hw_id=%d, cci_customer_id=%d",
+	printk(KERN_ERR "In %s, Read CCI HW ID from GPIO\n", "cci_hw_det_gpio");
+	printk(KERN_ERR "cci_project_id=%d, cci_sim_id=%d, cci_band_id=%d, cci_hw_id=%d, cci_customer_id=%d",
 		cci_project_id, cci_sim_id, cci_band_id, cci_hw_id, cci_customer_id);
 }
 #else
 static int __init cci_hw_id_from_cmdline(char *cci_hwid)
 {
 	sscanf(cci_hwid, "%d", &cci_hw_id);
+	//printk(KERN_ERR "Read CCI HW ID = %d from cmdline!\n", cci_hw_id);
  
 	return 1;
 }
@@ -220,6 +216,7 @@ __setup("hwid=", cci_hw_id_from_cmdline);
 static int __init cci_project_id_from_cmdline(char *cci_projectid)
 {
 	sscanf(cci_projectid, "%d", &cci_project_id);
+	//printk(KERN_ERR "Read CCI PROJECT ID = %d from cmdline!\n", cci_project_id);
 
 	return 1;
 }
@@ -228,6 +225,7 @@ __setup("projectid=", cci_project_id_from_cmdline);
 static int __init cci_sim_id_from_cmdline(char *cci_simid)
 {
 	sscanf(cci_simid, "%d", &cci_sim_id);
+	//printk(KERN_ERR "Read CCI SIM ID = %d from cmdline!\n", cci_sim_id);
 
 	return 1;
 }
@@ -236,6 +234,7 @@ __setup("multisim=", cci_sim_id_from_cmdline);
 static int __init cci_band_id_from_cmdline(char *cci_bandid)
 {
 	sscanf(cci_bandid, "%d", &cci_band_id);
+	//printk(KERN_ERR "Read CCI BAND ID = %d from cmdline!\n", cci_band_id);
 
 	return 1;
 }
@@ -245,6 +244,7 @@ __setup("bandid=", cci_band_id_from_cmdline);
 static int __init cci_customer_id_from_cmdline(char *cci_customerid)
 {
 	sscanf(cci_customerid, "%d", &cci_customer_id);
+	//printk(KERN_ERR "Read CUSTOMER ID = %d from cmdline!\n", cci_customer_id);
 
 	return 1;
 }
@@ -337,7 +337,7 @@ int cci_hwid_info_read( char *page, char **start, off_t off, int count, int *eof
 
    len = sprintf(page, "%s=%d %s=%d %s=%d %s=%d %s=%d\n", "hwid", hwid, 
 				"projectid", projid, "multisim", simid, "bandid", bandid, "customer", customerid);
-   //printk(KERN_INFO "Read CCI HWID INFO from proc = %s!\n", page);
+   //printk(KERN_ERR "Read CCI HWID INFO from proc = %s!\n", page);
    return len;
 }
 

@@ -261,9 +261,6 @@ static int32_t msm_actuator_move_focus(
 	int32_t num_steps = move_params->num_steps;
 	struct msm_camera_i2c_reg_setting reg_setting;
 
-	curr_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
-	move_params->curr_lens_pos = curr_lens_pos;
-
 	if (copy_from_user(&ringing_params_kernel,
 		&(move_params->ringing_params[a_ctrl->curr_region_index]),
 		sizeof(struct damping_params_t))) {
@@ -277,6 +274,7 @@ static int32_t msm_actuator_move_focus(
 	if (dest_step_pos == a_ctrl->curr_step_pos)
 		return rc;
 
+	curr_lens_pos = a_ctrl->step_position_table[a_ctrl->curr_step_pos];
 	a_ctrl->i2c_tbl_index = 0;
 	CDBG("curr_step_pos =%d dest_step_pos =%d curr_lens_pos=%d\n",
 		a_ctrl->curr_step_pos, dest_step_pos, curr_lens_pos);
@@ -314,7 +312,6 @@ static int32_t msm_actuator_move_focus(
 		a_ctrl->curr_step_pos = target_step_pos;
 	}
 
-	move_params->curr_lens_pos = curr_lens_pos;
 	reg_setting.reg_setting = a_ctrl->i2c_reg_tbl;
 	reg_setting.data_type = a_ctrl->i2c_data_type;
 	reg_setting.size = a_ctrl->i2c_tbl_index;
@@ -686,23 +683,11 @@ static int msm_actuator_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh) {
 	int rc = 0;
 	struct msm_actuator_ctrl_t *a_ctrl =  v4l2_get_subdevdata(sd);
-    int rc2 = 0;	/**/
 	CDBG("Enter\n");
 	if (!a_ctrl) {
 		pr_err("failed\n");
 		return -EINVAL;
 	}
-	/**/
-	CDBG("back to DAC 0x0000!\n");
-	rc2 = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
-		&a_ctrl->i2c_client,
-		0x00, //addr
-		0x00, //data
-		MSM_CAMERA_I2C_BYTE_DATA);
-	if (rc2 < 0) {
-		pr_err("i2c write error:%d\n", rc);
-	}
-	/**/
 	if (a_ctrl->act_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
 		rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_util(
 			&a_ctrl->i2c_client, MSM_CCI_RELEASE);

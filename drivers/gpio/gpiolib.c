@@ -15,7 +15,7 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/gpio.h>
 
-/* KevinA_Lin 20140218 */
+/* KevinA_Lin 20130927 */
 #ifdef ORG_VER
 #else
 #include "linux/proc_fs.h"
@@ -40,7 +40,7 @@ unsigned int is_suspend = 0;
 unsigned int is_gpio_msm_suspend_valid = 0;
 unsigned int is_pmic_mpp_suspend_valid = 0;
 #endif
-/* KevinA_Lin 20140218 */
+/* KevinA_Lin 20130927 */
 
 /* Optional implementation infrastructure for GPIO interfaces.
  *
@@ -1898,7 +1898,7 @@ subsys_initcall(gpiolib_debugfs_init);
 
 #endif	/* DEBUG_FS */
 
-/* KevinA_Lin 20140218 */
+/* KevinA_Lin 20130927 */
 #ifdef ORG_VER
 #else
 #define GPIO_CONFIG(gpio)         (MSM_TLMM_BASE + 0x1000 + (0x10 * (gpio)))
@@ -2221,4 +2221,4 @@ static int __init gpio_suspend_info_init(void)
 }
 subsys_initcall(gpio_suspend_info_init);
 #endif
-/* KevinA_Lin 20140218*/
+/* KevinA_Lin 20130927 */

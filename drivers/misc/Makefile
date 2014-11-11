@@ -72,4 +72,5 @@ obj-$(CONFIG_QFP_FUSE) += qfp_fuse.o
 obj-$(CONFIG_TI_DRV2667) += ti_drv2667.o
 obj-$(CONFIG_QPNP_MISC) += qpnp-misc.o
 
+# Robert, 20120904, SA77_CR656: add NFC feature and PN547 checking to BSP1214
 obj-$(CONFIG_NXP_NFC_PN547)	+= pn547.o

@@ -110,9 +110,6 @@ EXPORT_SYMBOL(boot_reason);
 unsigned int cold_boot;
 EXPORT_SYMBOL(cold_boot);
 
-char* (*arch_read_hardware_id)(void);
-EXPORT_SYMBOL(arch_read_hardware_id);
-
 #ifdef MULTI_CPU
 struct processor processor __read_mostly;
 #endif
@@ -516,12 +513,10 @@ void __init dump_machine_table(void)
 		/* can't use cpu_relax() here as it may require MMU setup */;
 }
 
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 #define CCI_RAMDUMP_SIZE                                    (0x400000) //4M
 #define CCI_RAMDUMP_START_ADDR_PHYSICAL     (CCI_KLOG_START_ADDR_PHYSICAL - CCI_RAMDUMP_SIZE)  //0x5C00000
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 
 int __init arm_add_memory(phys_addr_t start, phys_addr_t size)
 {
@@ -529,7 +524,7 @@ int __init arm_add_memory(phys_addr_t start, phys_addr_t size)
 
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
 #ifdef CONFIG_CCI_KLOG
-	printk("%s(%u):try start=0x%08llX, size=0x%08llX\n", __func__, meminfo.nr_banks, (long long)start, (long long)size);
+	printk("arm_add_memory(%u):try start=0x%08llX, size=0x%08llX\n", meminfo.nr_banks, (long long)start, (long long)size);
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
 	if (meminfo.nr_banks >= NR_BANKS) {
@@ -555,8 +550,7 @@ int __init arm_add_memory(phys_addr_t start, phys_addr_t size)
 		size -= CCI_KLOG_SIZE;
 	}
 
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 	if(start == (phys_addr_t)CCI_RAMDUMP_START_ADDR_PHYSICAL)//top of a bank
 	{
 		start += CCI_RAMDUMP_SIZE;
@@ -566,8 +560,7 @@ int __init arm_add_memory(phys_addr_t start, phys_addr_t size)
 	{
 		size -= CCI_RAMDUMP_SIZE;
 	}
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
 	bank->start = PAGE_ALIGN(start);
@@ -589,7 +582,7 @@ int __init arm_add_memory(phys_addr_t start, phys_addr_t size)
 
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
 #ifdef CONFIG_CCI_KLOG
-	printk("%s(%u):set start=0x%08llX, size=0x%08llX\n", __func__, meminfo.nr_banks, (long long)start, (long long)size);
+	printk("arm_add_memory(%u):set start=0x%08llX, size=0x%08llX\n", meminfo.nr_banks, (long long)start, (long long)size);
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
 	/*
@@ -1155,10 +1148,7 @@ static int c_show(struct seq_file *m, void *v)
 
 	seq_puts(m, "\n");
 
-	if (!arch_read_hardware_id)
-		seq_printf(m, "Hardware\t: %s\n", machine_name);
-	else
-		seq_printf(m, "Hardware\t: %s\n", arch_read_hardware_id());
+	seq_printf(m, "Hardware\t: %s\n", machine_name);
 	seq_printf(m, "Revision\t: %04x\n", system_rev);
 	seq_printf(m, "Serial\t\t: %08x%08x\n",
 		   system_serial_high, system_serial_low);

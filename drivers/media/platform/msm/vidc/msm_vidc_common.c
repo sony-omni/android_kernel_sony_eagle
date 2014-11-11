@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -390,8 +390,7 @@ static int wait_for_sess_signal_receipt(struct msm_vidc_inst *inst,
 		&inst->completions[SESSION_MSG_INDEX(cmd)],
 		msecs_to_jiffies(msm_vidc_hw_rsp_timeout));
 	if (!rc) {
-		dprintk(VIDC_ERR, "Wait interrupted or timeout: %d\n",
-				SESSION_MSG_INDEX(cmd));
+		dprintk(VIDC_ERR, "Wait interrupted or timeout: %d\n", rc);
 		msm_comm_recover_from_session_error(inst);
 		rc = -EIO;
 	} else {
@@ -519,15 +518,13 @@ static void handle_event_change(enum command_response cmd, void *data)
 					__func__, inst,
 					event_notify->packet_buffer,
 					event_notify->exra_data_buffer);
-
-				if (inst->state == MSM_VIDC_CORE_INVALID ||
-					inst->core->state ==
-						VIDC_CORE_INVALID) {
-					dprintk(VIDC_DBG,
-						"Event release buf ref received in invalid state - discard\n");
-					return;
-				}
-
+//[B] MY_S Crash Qct SR1471945
+                             if (inst->state == MSM_VIDC_CORE_INVALID ||
+                                     inst->core->state == VIDC_CORE_INVALID) {
+                                     dprintk(VIDC_DBG, "Event release buf ref received in invalid state - discard\n");
+                                     return;
+                             }
+//[E] MY_S Crash Qct SR1471945
 				/*
 				* Get the buffer_info entry for the
 				* device address.
@@ -1183,8 +1180,6 @@ static void handle_fbd(enum command_response cmd, void *data)
 			vb->v4l2_buf.flags |= V4L2_QCOM_BUF_DATA_CORRUPT;
 		if (fill_buf_done->flags1 & HAL_BUFFERFLAG_DROP_FRAME)
 			vb->v4l2_buf.flags |= V4L2_QCOM_BUF_DROP_FRAME;
-		if (fill_buf_done->flags1 & HAL_BUFFERFLAG_MBAFF)
-			vb->v4l2_buf.flags |= V4L2_MSM_BUF_FLAG_MBAFF;
 		switch (fill_buf_done->picture_type) {
 		case HAL_PICTURE_IDR:
 			vb->v4l2_buf.flags |= V4L2_QCOM_BUF_FLAG_IDRFRAME;
@@ -1455,8 +1450,7 @@ static int msm_comm_unset_ocmem(struct msm_vidc_core *core)
 		&core->completions[SYS_MSG_INDEX(RELEASE_RESOURCE_DONE)],
 		msecs_to_jiffies(msm_vidc_hw_rsp_timeout));
 	if (!rc) {
-		dprintk(VIDC_ERR, "Wait interrupted or timeout: %d\n",
-				SYS_MSG_INDEX(RELEASE_RESOURCE_DONE));
+		dprintk(VIDC_ERR, "Wait interrupted or timeout: %d\n", rc);
 		rc = -EIO;
 	}
 release_ocmem_failed:
@@ -1478,8 +1472,7 @@ static int msm_comm_init_core_done(struct msm_vidc_inst *inst)
 		&core->completions[SYS_MSG_INDEX(SYS_INIT_DONE)],
 		msecs_to_jiffies(msm_vidc_hw_rsp_timeout));
 	if (!rc) {
-		dprintk(VIDC_ERR, "Wait interrupted or timeout: %d\n",
-				SYS_MSG_INDEX(SYS_INIT_DONE));
+		dprintk(VIDC_ERR, "Wait interrupted or timeout: %d\n", rc);
 		rc = -EIO;
 		goto exit;
 	} else {
@@ -2478,12 +2471,9 @@ int msm_comm_qbuf(struct vb2_buffer *vb)
 			extra_idx =
 			EXTRADATA_IDX(inst->fmts[CAPTURE_PORT]->num_planes);
 			if (extra_idx && (extra_idx < VIDEO_MAX_PLANES) &&
-				vb->v4l2_planes[extra_idx].m.userptr) {
+				vb->v4l2_planes[extra_idx].m.userptr)
 				frame_data.extradata_addr =
 					vb->v4l2_planes[extra_idx].m.userptr;
-				frame_data.extradata_size =
-					vb->v4l2_planes[extra_idx].length;
-			}
 			dprintk(VIDC_DBG,
 				"Sending ftb to hal: device_addr: 0x%x, alloc: %d, buffer_type: %d, ts: %lld, flags = 0x%x\n",
 				frame_data.device_addr, frame_data.alloc_len,
@@ -2559,8 +2549,7 @@ int msm_comm_try_get_bufreqs(struct msm_vidc_inst *inst)
 		msecs_to_jiffies(msm_vidc_hw_rsp_timeout));
 	if (!rc) {
 		dprintk(VIDC_ERR,
-			"Wait interrupted or timeout: %d\n",
-			SESSION_MSG_INDEX(SESSION_PROPERTY_INFO));
+			"Wait interrupted or timeout: %d\n", rc);
 		inst->state = MSM_VIDC_CORE_INVALID;
 		msm_comm_recover_from_session_error(inst);
 		rc = -EIO;
@@ -2966,6 +2955,9 @@ void msm_comm_flush_dynamic_buffers(struct msm_vidc_inst *inst)
 				dprintk(VIDC_DBG,
 					"released buffer held in driver before issuing flush: 0x%x fd[0]: %d\n",
 					binfo->device_addr[0], binfo->fd[0]);
+				/*delete this buffer info from registered list*/
+				list_del(&binfo->list);
+				kfree(binfo);
 				/*send event to client*/
 				v4l2_event_queue_fh(&inst->event_handler,
 					&buf_event);
@@ -3010,9 +3002,11 @@ int msm_comm_flush(struct msm_vidc_inst *inst, u32 flags)
 		dprintk(VIDC_INFO, "Input only flush not supported\n");
 		return 0;
 	}
-	mutex_lock(&inst->sync_lock);
-	msm_comm_flush_dynamic_buffers(inst);
-	mutex_unlock(&inst->sync_lock);
+//[B] MY_S Crash Qct SR1471945
+       mutex_lock(&inst->sync_lock);
+       msm_comm_flush_dynamic_buffers(inst);
+       mutex_unlock(&inst->sync_lock);
+//[E] MY_S Crash Qct SR1471945
 	if (inst->state == MSM_VIDC_CORE_INVALID ||
 			core->state == VIDC_CORE_INVALID) {
 		dprintk(VIDC_ERR,
@@ -3023,6 +3017,11 @@ int msm_comm_flush(struct msm_vidc_inst *inst, u32 flags)
 	}
 
 	mutex_lock(&inst->sync_lock);
+//[B] MY_S Crash Qct SR1471945
+#if 0
+	msm_comm_flush_dynamic_buffers(inst);
+#endif
+//[E] MY_S Crash Qct SR1471945
 	if (inst->in_reconfig && !ip_flush && op_flush) {
 		if (!list_empty(&inst->pendingq)) {
 			/*Execution can never reach here since port reconfig
@@ -3290,24 +3289,10 @@ int msm_vidc_check_session_supported(struct msm_vidc_inst *inst)
 
 	rc = msm_vidc_load_supported(inst);
 	if (!rc && inst->capability.capability_set) {
-		if (inst->prop.width[CAPTURE_PORT] < capability->width.min ||
-			inst->prop.height[CAPTURE_PORT] <
-			capability->height.min) {
-			dprintk(VIDC_ERR,
-				"Unsupported WxH = (%u)x(%u), min supported is - (%u)x(%u)\n",
-				inst->prop.width[CAPTURE_PORT],
-				inst->prop.height[CAPTURE_PORT],
-				capability->width.min,
-				capability->height.min);
-			rc = -ENOTSUPP;
-		}
-		if (!rc) {
-			rc = call_hfi_op(hdev, capability_check,
-				inst->fmts[OUTPUT_PORT]->fourcc,
-				inst->prop.width[CAPTURE_PORT],
-				&capability->width.max,
-				&capability->height.max);
-		}
+		rc = call_hfi_op(hdev, capability_check,
+			inst->fmts[OUTPUT_PORT]->fourcc,
+			inst->prop.width[CAPTURE_PORT], &capability->width.max,
+			&capability->height.max);
 
 		if (!rc && (inst->prop.height[CAPTURE_PORT]
 			* inst->prop.width[CAPTURE_PORT] >
@@ -3325,6 +3310,7 @@ int msm_vidc_check_session_supported(struct msm_vidc_inst *inst)
 		inst->state = MSM_VIDC_CORE_INVALID;
 		mutex_unlock(&inst->sync_lock);
 		msm_vidc_queue_v4l2_event(inst, V4L2_EVENT_MSM_VIDC_SYS_ERROR);
+		wake_up(&inst->kernel_event_queue);
 	}
 	return rc;
 }
@@ -3375,7 +3361,7 @@ int msm_comm_recover_from_session_error(struct msm_vidc_inst *inst)
 		msecs_to_jiffies(msm_vidc_hw_rsp_timeout));
 	if (!rc) {
 		dprintk(VIDC_ERR, "%s: Wait interrupted or timeout: %d\n",
-			__func__, SESSION_MSG_INDEX(SESSION_ABORT_DONE));
+			__func__, rc);
 		msm_comm_generate_sys_error(inst);
 	} else
 		change_inst_state(inst, MSM_VIDC_CLOSE_DONE);

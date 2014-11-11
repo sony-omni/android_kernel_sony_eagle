@@ -144,8 +144,4 @@ obj-$(CONFIG_MOBICORE_SUPPORT)  += gud/
 obj-$(CONFIG_CORESIGHT)		+= coresight/
 
 obj-$(CONFIG_BIF)		+= bif/
-obj-$(CONFIG_SENSORS)		+= sensors/
-
-#[VY5x] ==> CCI KLog, added by Jimmy@CCI
 obj-y += cci/
-#[VY5x] <== CCI KLog, added by Jimmy@CCI

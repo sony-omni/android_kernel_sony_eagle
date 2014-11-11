@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1313,8 +1313,6 @@ static int msm_slim_0_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 			SNDRV_PCM_HW_PARAM_CHANNELS);
 
 	pr_debug("%s()\n", __func__);
-	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT,
-				   slim0_rx_bit_format);
 	rate->min = rate->max = 48000;
 	channels->min = channels->max = msm_slim_0_tx_ch;
 
@@ -2012,7 +2010,7 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 		.name = "MSM8974 Compr",
 		.stream_name = "COMPR",
 		.cpu_dai_name	= "MultiMedia4",
-		.platform_name  = "msm-compress-dsp",
+		.platform_name  = "msm-compr-dsp",
 		.dynamic = 1,
 		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
 			 SND_SOC_DPCM_TRIGGER_POST},
@@ -2132,7 +2130,7 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 		.name = "MSM8974 Compr2",
 		.stream_name = "COMPR2",
 		.cpu_dai_name	= "MultiMedia6",
-		.platform_name  = "msm-compress-dsp",
+		.platform_name  = "msm-compr-dsp",
 		.dynamic = 1,
 		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
 			 SND_SOC_DPCM_TRIGGER_POST},
@@ -2147,7 +2145,7 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 		.name = "MSM8974 Compr3",
 		.stream_name = "COMPR3",
 		.cpu_dai_name	= "MultiMedia7",
-		.platform_name  = "msm-compress-dsp",
+		.platform_name  = "msm-compr-dsp",
 		.dynamic = 1,
 		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
 			 SND_SOC_DPCM_TRIGGER_POST},
@@ -2203,53 +2201,6 @@ static struct snd_soc_dai_link msm8974_common_dai_links[] = {
 		.ignore_pmdown_time = 1,
 		.codec_dai_name = "snd-soc-dummy-dai",
 		.codec_name = "snd-soc-dummy",
-	},
-	{
-		.name = "Voice2",
-		.stream_name = "Voice2",
-		.cpu_dai_name   = "Voice2",
-		.platform_name  = "msm-pcm-voice",
-		.dynamic = 1,
-		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
-			    SND_SOC_DPCM_TRIGGER_POST},
-		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
-		.ignore_suspend = 1,
-		/* this dainlink has playback support */
-		.ignore_pmdown_time = 1,
-		.codec_dai_name = "snd-soc-dummy-dai",
-		.codec_name = "snd-soc-dummy",
-		.be_id = MSM_FRONTEND_DAI_VOICE2,
-	},
-	{
-		.name = "INT_HFP_BT Hostless",
-		.stream_name = "INT_HFP_BT Hostless",
-		.cpu_dai_name   = "INT_HFP_BT_HOSTLESS",
-		.platform_name  = "msm-pcm-hostless",
-		.dynamic = 1,
-		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
-			    SND_SOC_DPCM_TRIGGER_POST},
-		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
-		.ignore_suspend = 1,
-		/* this dai link has playback support */
-		.ignore_pmdown_time = 1,
-		.codec_dai_name = "snd-soc-dummy-dai",
-		.codec_name = "snd-soc-dummy",
-	},
-	{
-		.name = "MSM8974 HFP TX",
-		.stream_name = "MultiMedia6",
-		.cpu_dai_name = "MultiMedia6",
-		.platform_name  = "msm-pcm-loopback",
-		.dynamic = 1,
-		.codec_dai_name = "snd-soc-dummy-dai",
-		.codec_name = "snd-soc-dummy",
-		.trigger = {SND_SOC_DPCM_TRIGGER_POST,
-			    SND_SOC_DPCM_TRIGGER_POST},
-		.ignore_suspend = 1,
-		.no_host_mode = SND_SOC_DAI_LINK_NO_HOST,
-		/* this dainlink has playback support */
-		.ignore_pmdown_time = 1,
-		.be_id = MSM_FRONTEND_DAI_MULTIMEDIA6,
 	},
 	{
 		.name = LPASS_BE_SLIMBUS_4_TX,

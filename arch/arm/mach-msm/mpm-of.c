@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -32,7 +32,6 @@
 #include <linux/power_supply.h>
 #include <linux/regulator/consumer.h>
 #include <linux/workqueue.h>
-#include <linux/mutex.h>
 #include <asm/hardware/gic.h>
 #include <asm/arch_timer.h>
 #include <mach/gpio.h>
@@ -197,6 +196,15 @@ static void msm_mpm_set(cycle_t wakeup, bool wakeset)
 
 		reg = MSM_MPM_REG_STATUS;
 		msm_mpm_write(reg, i, 0);
+		/*KevinA_Lin, 20140210*/
+		 /* print mpm register for analyzing wake up register    */ 
+		if (irqs == msm_mpm_wake_irq) { 
+			//pr_info("QCT %s 0x%x, %x\n", __func__, irqs[0],irqs[1]); 
+			pr_info("QCT %s 0x%x, %x\n", __func__, msm_mpm_falling_edge[0],msm_mpm_falling_edge[1]);
+			pr_info("QCT %s 0x%x, %x\n", __func__, msm_mpm_rising_edge[0],msm_mpm_rising_edge[1]);
+	 		//pr_info("QCT %s 0x%x, %x\n", __func__, msm_mpm_polarity[0],msm_mpm_polarity[1]); 
+		} 
+		/*KevinA_Lin, 20140210*/
 	}
 
 	/*
@@ -514,9 +522,7 @@ bool msm_mpm_irqs_detectable(bool from_idle)
 	return msm_mpm_interrupts_detectable(MSM_MPM_GIC_IRQ_DOMAIN,
 			from_idle);
 }
-
-void msm_mpm_enter_sleep(uint32_t sclk_count, bool from_idle,
-		const struct cpumask *cpumask)
+void msm_mpm_enter_sleep(uint32_t sclk_count, bool from_idle)
 {
 	cycle_t wakeup = (u64)sclk_count * ARCH_TIMER_HZ;
 
@@ -533,13 +539,11 @@ void msm_mpm_enter_sleep(uint32_t sclk_count, bool from_idle,
 	}
 
 	msm_mpm_set(wakeup, !from_idle);
-	irq_set_affinity(msm_mpm_dev_data.mpm_ipc_irq, cpumask);
 }
 
 void msm_mpm_exit_sleep(bool from_idle)
 {
 	unsigned long pending;
-	uint32_t *enabled_intr;
 	int i;
 	int k;
 
@@ -548,16 +552,12 @@ void msm_mpm_exit_sleep(bool from_idle)
 		return;
 	}
 
-	enabled_intr = from_idle ? msm_mpm_enabled_irq :
-						msm_mpm_wake_irq;
-
 	for (i = 0; i < MSM_MPM_REG_WIDTH; i++) {
 		pending = msm_mpm_read(MSM_MPM_REG_STATUS, i);
-		pending &= enabled_intr[i];
 
 		if (MSM_MPM_DEBUG_PENDING_IRQ & msm_mpm_debug_mask)
-			pr_info("%s: enabled_intr pending.%d: 0x%08x 0x%08lx\n",
-				__func__, i, enabled_intr[i], pending);
+			pr_info("%s: pending.%d: 0x%08lx", __func__,
+					i, pending);
 
 		k = find_first_bit(&pending, 32);
 		while (k < 32) {
@@ -581,9 +581,6 @@ void msm_mpm_exit_sleep(bool from_idle)
 }
 static void msm_mpm_sys_low_power_modes(bool allow)
 {
-	static DEFINE_MUTEX(enable_xo_mutex);
-
-	mutex_lock(&enable_xo_mutex);
 	if (allow) {
 		if (xo_enabled) {
 			clk_disable_unprepare(xo_clk);
@@ -599,7 +596,6 @@ static void msm_mpm_sys_low_power_modes(bool allow)
 			xo_enabled = true;
 		}
 	}
-	mutex_unlock(&enable_xo_mutex);
 }
 
 void msm_mpm_suspend_prepare(void)
@@ -691,8 +687,7 @@ static int __devinit msm_mpm_dev_probe(struct platform_device *pdev)
 		return -ENXIO;
 	}
 	ret = devm_request_irq(&pdev->dev, dev->mpm_ipc_irq, msm_mpm_irq,
-			IRQF_TRIGGER_RISING | IRQF_NO_SUSPEND, pdev->name,
-			msm_mpm_irq);
+			IRQF_TRIGGER_RISING, pdev->name, msm_mpm_irq);
 
 	if (ret) {
 		pr_info("%s(): request_irq failed errno: %d\n", __func__, ret);

@@ -664,7 +664,7 @@ static int fuse_readpages_fill(void *_data, struct page *page)
 		}
 	}
 
-#ifdef CONFIG_CMA
+#if 0//def CONFIG_CMA
 	if (is_cma_pageblock(page)) {
 		struct page *oldpage = page, *newpage;
 		int err;
@@ -691,8 +691,6 @@ static int fuse_readpages_fill(void *_data, struct page *page)
 		 */
 		lock_page(newpage);
 		put_page(newpage);
-
-		lru_cache_add_file(newpage);
 
 		/* finally release the old page and swap pointers */
 		unlock_page(oldpage);

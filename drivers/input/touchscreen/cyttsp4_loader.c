@@ -198,7 +198,7 @@ static int cyttsp4_check_upgrade(struct cyttsp4_device *ttsp)
 
 	if(silicon_id == IC_445)
 	{
-	//	if(cfg_ver_new_l > cfg_ver_old_l)	// for test
+//		if(cfg_ver_new_l > cfg_ver_old_l)	// for test
 		if( (cfg_ver_new_h > cfg_ver_old_h) && (cfg_ver_new_l==0x0) )	// for formal release
 		{
 			printk("[TP] Need to upgrade FW.\n");

@@ -106,11 +106,9 @@
 #define MSM_KLOG_BASE		IOMEM(0xFB600000)
 #define MSM_KLOG_SIZE		CCI_KLOG_SIZE
 
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 #define MSM_RAMDUMP_BASE		IOMEM(0xFB600000 + CCI_KLOG_SIZE)
-#endif //#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
 /* MSM9625 has unaligned imem so we need to map excess 2K virtually

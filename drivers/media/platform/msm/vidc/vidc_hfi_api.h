@@ -44,7 +44,6 @@
 #define HAL_BUFFERFLAG_READONLY         0x00000200
 #define HAL_BUFFERFLAG_ENDOFSUBFRAME    0x00000400
 #define HAL_BUFFERFLAG_EOSEQ            0x00200000
-#define HAL_BUFFERFLAG_MBAFF            0x08000000
 #define HAL_BUFFERFLAG_DROP_FRAME       0x20000000
 
 
@@ -863,7 +862,6 @@ struct vidc_frame_data {
 	u32 mark_target;
 	u32 mark_data;
 	u32 clnt_data;
-	u32 extradata_size;
 };
 
 struct vidc_seq_hdr {

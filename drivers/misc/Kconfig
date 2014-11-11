@@ -660,6 +660,7 @@ config USB_HSIC_SMSC_HUB
 	  This adds support for connecting devices like mouse in HSIC
 	  Host mode.
 
+# Robert, 20120904, SA77_CR656: add NFC feature and PN547 checking to BSP1214
 config NXP_NFC_PN547
 	tristate "NFC PN547 Driver"
 	default n

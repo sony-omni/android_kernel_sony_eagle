@@ -42,13 +42,6 @@ static struct cyttsp4_touch_firmware cyttsp4_firmware = {
 	.ver = cyttsp4_ver,
 	.vsize = ARRAY_SIZE(cyttsp4_ver),
 };
-
-static struct cyttsp4_touch_firmware cyttsp4_firmware_vy58 = {
-	.img = cyttsp4_img_vy58,
-	.size = ARRAY_SIZE(cyttsp4_img_vy58),
-	.ver = cyttsp4_ver_vy58,
-	.vsize = ARRAY_SIZE(cyttsp4_ver_vy58),
-};
 #else
 static struct cyttsp4_touch_firmware cyttsp4_firmware = {
 	.img = NULL,
@@ -68,21 +61,9 @@ static struct touch_settings cyttsp4_sett_param_regs = {
 	.tag = 0,
 };
 
-static struct touch_settings cyttsp4_sett_param_regs_vy58 = {
-	.data = (uint8_t *)&cyttsp4_param_regs_vy58[0],
-	.size = ARRAY_SIZE(cyttsp4_param_regs_vy58),
-	.tag = 0,
-};
-
 static struct touch_settings cyttsp4_sett_param_size = {
 	.data = (uint8_t *)&cyttsp4_param_size[0],
 	.size = ARRAY_SIZE(cyttsp4_param_size),
-	.tag = 0,
-};
-
-static struct touch_settings cyttsp4_sett_param_size_vy58 = {
-	.data = (uint8_t *)&cyttsp4_param_size_vy58[0],
-	.size = ARRAY_SIZE(cyttsp4_param_size_vy58),
 	.tag = 0,
 };
 
@@ -91,13 +72,6 @@ static struct cyttsp4_touch_config cyttsp4_ttconfig = {
 	.param_size = &cyttsp4_sett_param_size,
 	.fw_ver = ttconfig_fw_ver,
 	.fw_vsize = ARRAY_SIZE(ttconfig_fw_ver),
-};
-
-static struct cyttsp4_touch_config cyttsp4_ttconfig_vy58 = {
-	.param_regs = &cyttsp4_sett_param_regs_vy58,
-	.param_size = &cyttsp4_sett_param_size_vy58,
-	.fw_ver = ttconfig_fw_ver_vy58,
-	.fw_vsize = ARRAY_SIZE(ttconfig_fw_ver_vy58),
 };
 /* [Optical][Touch] Implement FW upgrade, 20130808, Del Start */
 //#else
@@ -115,12 +89,6 @@ static struct cyttsp4_touch_config cyttsp4_ttconfig = {
 struct cyttsp4_loader_platform_data _cyttsp4_loader_platform_data = {
 	.fw = &cyttsp4_firmware,
 	.ttconfig = &cyttsp4_ttconfig,
-	.flags = CY_LOADER_FLAG_NONE,
-};
-
-struct cyttsp4_loader_platform_data _cyttsp4_loader_platform_data_vy58 = {
-	.fw = &cyttsp4_firmware_vy58,
-	.ttconfig = &cyttsp4_ttconfig_vy58,
 	.flags = CY_LOADER_FLAG_NONE,
 };
 

@@ -27,16 +27,13 @@
 #include <mach/cci_hw_id.h>
 #endif // #ifdef CONFIG_CCI_HARDWARE_ID
 #endif // #ifdef CCI_HW_ID
-#ifdef CCI_KLOG_MODEM_CRASH_LOG_USE_SMEM
-#include <mach/msm_smem.h>
-#endif // #ifdef CCI_KLOG_MODEM_CRASH_LOG_USE_SMEM
 
 /*******************************************************************************
 * Local Variable/Structure Declaration
 *******************************************************************************/
 
-#define KLOG_VERSION		"1.14.4"
-#define KLOG_VERSION_HEX	0x00010E04
+#define KLOG_VERSION		"1.14.1"
+#define KLOG_VERSION_HEX	0x00010E01
 
 //make sure the category is able to write
 #define CHK_CATEGORY(x) \
@@ -255,7 +252,7 @@ static char *klog_magic = (void *)MSM_KLOG_MAGIC;	//klog state magic word
 static int mem_ready = 0;				//0: memory is not ready, 1: memory is ready
 static int mem_have_clean = 0;				//0: memory is not clean, 1: memory is clean
 static int magic_priority = KLOG_PRIORITY_INVALID;
-static int crash_state = CRASH_STATE_INIT;		//0: not crash, 0x01: crashing, 0x02: previous crash
+static int crash_state = 0;				//0: not crash, 0x01: crashing, 0x02: previous crash
 static int rtc_synced = 0;
 #ifdef CCI_HW_ID
 #ifdef CONFIG_CCI_HARDWARE_ID
@@ -269,8 +266,8 @@ static char bootloader_version[KLOG_BOOTLOADER_VERSION_LENGTH] = {0};
 //for fault/exception record
 #if CCI_KLOG_CRASH_SIZE
 static int fault_log_level = 3;
-static int fault_level = FAULT_LEVEL_INIT;
-static int fault_type = FAULT_TYPE_INIT;
+static int fault_level = 0;
+static int fault_type = -1;
 static char fault_msg[256] = {0};
 static int kernel_log_level = -1;
 #endif // #if CCI_KLOG_CRASH_SIZE
@@ -281,11 +278,7 @@ static int modem_log_addr_inited = 0;
 #endif // #ifdef CCI_KLOG_MODEM_CRASH_LOG_USE_SMEM
 static char previous_reboot_magic[KLOG_MAGIC_LENGTH + 1] = {0};
 static int previous_normal_boot = -1;
-#ifdef CONFIG_WARMBOOT_UNDEFINED
-static unsigned long warmboot = CONFIG_WARMBOOT_UNDEFINED;
-#else // #ifdef CONFIG_WARMBOOT_UNDEFINED
-static unsigned long warmboot = 0xFFFFFFFF;
-#endif // #ifdef CONFIG_WARMBOOT_UNDEFINED
+static unsigned long warmboot = 0;
 static unsigned long startup = 0;
 static int unknowncrashflag_inited = 0;
 #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
@@ -320,7 +313,7 @@ int get_force_panic_when_power_off(void)
 #endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
 
 #if CCI_KLOG_CRASH_SIZE
-//level: 0x10:enable/disable, 0x01: panic, 0x02: die, 0x03: data abort, 0x04: prefetch abort, 0x05: subsystem fatal error, 0x06: watchdog
+//level: 0x10:enable/disable, 0x01: panic, 0x02: die, 0x03: data abort, 0x04: prefetch abort, 0x05: subsystem fatal error
 //type: depend on level, data abort: refer to fsr_info[], prefetch abort: ifsr_info[], subsystem: restart level
 //msg: message from panic or die, subsystem name
 int get_fault_state(void)
@@ -330,32 +323,26 @@ int get_fault_state(void)
 
 void set_fault_state(int level, int type, const char* msg)
 {
-#ifdef CCI_KLOG_MODEM_CRASH_LOG_USE_SMEM
-	int log_size = 0;
-	int log_ok = 0;
-#endif // #ifdef CCI_KLOG_MODEM_CRASH_LOG_USE_SMEM
-
-	if(level == FAULT_LEVEL_INIT)//reset the fault
+	if(level == 0)//reset fault
 	{
-		fault_level = FAULT_LEVEL_INIT;
-		fault_type = FAULT_TYPE_INIT;
+		fault_level = 0;
+		fault_type = -1;
 		fault_msg[0] = 0;
 		pklog_category[KLOG_CRASH]->index = 0;
 		pklog_category[KLOG_CRASH]->overload = 0;
 		memset(&pklog_category[KLOG_CRASH]->buffer[0], 0, CCI_KLOG_CRASH_SIZE - KLOG_CATEGORY_HEADER_SIZE);
 	}
-	else if(level > FAULT_LEVEL_INIT)//record the fault to crash(start)
+	else if(level > 0)//fault to crash start
 	{
-		if(fault_level <= FAULT_LEVEL_INIT)//allow to record
+		if(fault_level <= 0)
 		{
 			fault_level = level;
 			fault_type = type;
 			strncpy(fault_msg, msg, strlen(msg));
 			kprintk("fault_level=0x%X, fault_type=%d, fault_msg=%s\n", fault_level, fault_type, fault_msg);
 #ifdef CCI_KLOG_MODEM_CRASH_LOG_USE_SMEM
-			if(fault_level == FAULT_LEVEL_SUBSYSTEM && strcmp(fault_msg, "modem") == 0)//modem subsystem
+			if(fault_level == 0x5 && strcmp(fault_msg, "modem") == 0)//modem subsystem
 			{
-//modem log address which provided by RIL
 				if(modem_log_addr_inited == 1)
 				{
 					if(modem_log_addr >= MSM_SHARED_RAM_PHYS && modem_log_addr < (MSM_SHARED_RAM_PHYS + MSM_SHARED_RAM_SIZE))//modem dynamic allocated physical address
@@ -368,50 +355,18 @@ void set_fault_state(int level, int type, const char* msg)
 						kprintk("modem crash log address offset:0x%lX\n", modem_log_addr);
 						modem_log = (void *)MSM_SHARED_RAM_BASE + modem_log_addr;
 					}
-					else//invalid address
+					else//invalid address, use last 2KB address of SMEM by default
 					{
-						kprintk("invalid modem crash log address:0x%lX\n", modem_log_addr);
-						modem_log_addr_inited = 0;
-					}
-
-					if(modem_log_addr_inited == 1 && strlen(modem_log) > 0)
-					{
-						log_ok = 1;
+						kprintk("invalid modem crash log address:0x%lX, try default address\n", modem_log_addr);
+						modem_log = (void *)MSM_SHARED_RAM_BASE + (MSM_SHARED_RAM_SIZE - 1024 * 2);
 					}
 				}
-
-//modem log address from VENDOR1 by kernel
-				if(modem_log_addr_inited == 0 || log_ok == 0)
-				{
-					modem_log = smem_get_entry_to_proc(SMEM_ID_VENDOR1, &log_size, 0, SMEM_ANY_HOST_FLAG);
-					if(IS_ERR_OR_NULL(modem_log))
-					{
-						kprintk("get modem crash log address failed\n");
-					}
-					else
-					{
-						kprintk("modem crash log address:0x%lX, size:%d\n", (unsigned long)modem_log, log_size);
-
-						if(strlen(modem_log) > 0)
-						{
-							log_ok = 1;
-						}
-					}
-				}
-
-//default modem log address
-				if(log_ok == 0)
+				else
 				{
 					kprintk("modem crash log address not available, try default address\n");
 					modem_log = (void *)MSM_SHARED_RAM_BASE + (MSM_SHARED_RAM_SIZE - 1024 * 2);
-
-					if(strlen(modem_log) > 0)
-					{
-						log_ok = 1;
-					}
 				}
-
-				if(log_ok > 0)
+				if(strlen(modem_log) > 0)
 				{
 					kprintk("modem crash log:%s\n", modem_log);
 				}
@@ -424,19 +379,19 @@ void set_fault_state(int level, int type, const char* msg)
 		}
 		else
 		{
-			kprintk("fault already exists:0x%X, ignore:0x%X\n", fault_level, level);
+			kprintk("fault already exist:%d, ignore:%d\n", fault_level, level);
 		}
 	}
-	else if(level < FAULT_LEVEL_INIT)//record the fault to crash(end)
+	else if(level < 0)//fault to crash end
 	{
-		if(fault_level > FAULT_LEVEL_INIT)//recording
+		if(fault_level > 0)
 		{
-			fault_level |= FAULT_LEVEL_EXIST;
+			fault_level |= 0x10;//end flag
 			kprintk("fault_level=0x%X, fault_type=%d, fault_msg=%s\n", fault_level, fault_type, fault_msg);
 		}
 		else
 		{
-			kprintk("fault invalid, ignore:0x%X\n", level);
+			kprintk("fault not exist, ignore:%d\n", level);
 		}
 	}
 
@@ -488,7 +443,7 @@ struct klog_time klog_record_kernel_timestamp(const struct timespec *log_time)
 //update crash_state first
 		update_priority();
 
-		if((crash_state & CRASH_STATE_PREVIOUS) == 0)//only allow to record if not previous crash
+		if((crash_state & 0x02) == 0)//only allow to record if not previous crash
 		{
 //record kernel clock time(uptime)
 			snprintf(klog_magic + KLOG_MAGIC_TOTAL_LENGTH, KLOG_KERNEL_TIME_LENGTH, "[%08lX.%08lX]", (unsigned long) current_time.clock.tv_sec, current_time.clock.tv_nsec);
@@ -527,7 +482,7 @@ static __inline__ void __cklc_append_char(unsigned int category, unsigned char c
 		update_priority();
 	}
 
-	if(mem_ready == 0 || (crash_state & CRASH_STATE_PREVIOUS) > 0)//not allow to record if previous crash
+	if(mem_ready == 0 || (crash_state & 0x02) > 0)//not allow to record if previous crash
 	{
 		return;
 	}
@@ -880,7 +835,7 @@ void update_priority(void)
 #endif // #ifdef CONFIG_WARMBOOT_CRASH
 
 #ifdef CONFIG_WARMBOOT_CRASH
-		if((warmboot == CONFIG_WARMBOOT_CRASH || (warmboot != CONFIG_WARMBOOT_UNDEFINED && warmboot != 0 && (crashflag == CONFIG_WARMBOOT_CRASH || unknownrebootflag == CONFIG_WARMBOOT_CRASH)))
+		if((warmboot == CONFIG_WARMBOOT_CRASH || (warmboot != 0 && (crashflag == CONFIG_WARMBOOT_CRASH || unknownrebootflag == CONFIG_WARMBOOT_CRASH)))
 #else // #ifdef CONFIG_WARMBOOT_CRASH
 		if(warmboot == 0xC0DEDEAD
 #endif // #ifdef CONFIG_WARMBOOT_CRASH
@@ -898,7 +853,7 @@ void update_priority(void)
 //check if previous crash
 			if(match_crash_priority(magic_priority) > 0)
 			{
-				crash_state = crash_state | CRASH_STATE_PREVIOUS;
+				crash_state = crash_state | 0x02;
 			}
 		}
 	}
@@ -906,7 +861,6 @@ void update_priority(void)
 
 void cklc_save_magic(char *magic, int state)
 {
-	char value[KLOG_STATE_LENGTH + 1] = {0};
 	char buf[KLOG_MAGIC_TOTAL_LENGTH] = {0};
 	int priority = KLOG_PRIORITY_INVALID;
 	int magic_update = 0;
@@ -922,33 +876,19 @@ void cklc_save_magic(char *magic, int state)
 		update_priority();
 	}
 
-	if(state > 0xFFF || state < KLOG_STATE_INIT)
-	{
-		kprintk("Ignore invalid state %d\n", state);
-		state = KLOG_STATE_NONE;
-	}
-	if(state == KLOG_STATE_INIT)
-	{
-		strncpy(value, KLOG_STATE_INIT_CODE, KLOG_STATE_LENGTH);
-	}
-	else
-	{
-		snprintf(value, KLOG_STATE_LENGTH, "%02X", state);
-	}
-
 	if(magic && strlen(magic) > 0)
 	{
 		strncpy(buf, magic, KLOG_MAGIC_LENGTH);
 		strncpy(buf + KLOG_MAGIC_LENGTH, klog_magic + KLOG_MAGIC_LENGTH, KLOG_STATE_LENGTH);
 #ifdef CCI_KLOG_DETAIL_LOG
-		kprintk_set_magic("prepare", magic, value, buf);
+		kprintk("preset magic(prepare):magic=%s, state=%d, buf=%s\n", magic, state, buf);
 #endif // #ifdef CCI_KLOG_DETAIL_LOG
 
 		priority = get_magic_priority(buf);
 
 		if(match_crash_priority(priority) > 0)//mARM fatal or aARM panic is happening, i.e., crashing
 		{
-			crash_state = crash_state | CRASH_STATE_CRASHING;
+			crash_state = crash_state | 0x01;
 		}
 	}
 	else
@@ -964,66 +904,61 @@ void cklc_save_magic(char *magic, int state)
 	if(warmboot == 0 || magic_priority == KLOG_PRIORITY_INVALID || !strncmp(klog_magic, KLOG_MAGIC_POWER_OFF, KLOG_MAGIC_LENGTH))//cold-boot
 	{
 		state = 0;
-#ifdef CONFIG_WARMBOOT_NORMAL
-		warmboot = CONFIG_WARMBOOT_NORMAL;
-#else // #ifdef CONFIG_WARMBOOT_NORMAL
-		warmboot = 0x77665501;
-#endif // #ifdef CONFIG_WARMBOOT_NORMAL
 		if(magic_priority == KLOG_PRIORITY_INVALID)//invalid magic, init klog with default magic
 		{
 			magic_update = 1;
 			magic_priority = KLOG_PRIORITY_KLOG_INIT;
 			snprintf(buf, KLOG_MAGIC_TOTAL_LENGTH, "%s%s", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE);
-			kprintk_set_magic("cold:invalid", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE, buf);
+			kprintk("preset magic(cold-boot invalid):magic=%s, state=%s, buf=%s\n", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE, buf);
 		}
 		else//valid magic, init klog with specified magic
 		{
 			magic_update = 1;
 			magic_priority = priority;
 			strncpy(buf + KLOG_MAGIC_LENGTH, KLOG_STATE_INIT_CODE, KLOG_STATE_LENGTH);
-			kprintk_set_magic("cold:valid", magic, KLOG_STATE_INIT_CODE, buf);
+			kprintk("preset magic(cold-boot valid):magic=%s, state=%s, buf=%s\n", magic, KLOG_STATE_INIT_CODE, buf);
 		}
 	}
-	else//warm-boot
+	else//warn-boot
 	{
 		if(priority == KLOG_PRIORITY_INVALID)//invalid magic, do not update magic
 		{
 			strncpy(buf, klog_magic, KLOG_MAGIC_LENGTH + KLOG_STATE_LENGTH);
-			kprintk_set_magic("warm:invalid", KLOG_MAGIC_NONE, value, buf);
+			kprintk("preset magic(warn-boot invalid):state=%d, buf=%s\n", state, buf);
 		}
 		else//valid magic
 		{
 			if(!strncmp(buf, KLOG_MAGIC_FORCE_CLEAR, KLOG_MAGIC_LENGTH))//force clear
 			{
 				state = 0;
-				if((crash_state & CRASH_STATE_CRASHING) > 0)//not allow force clear magic if crashing
+				if((crash_state & 0x01) > 0)//not allow force clear magic if crashing
 				{
 					strncpy(buf, klog_magic, KLOG_MAGIC_LENGTH + KLOG_STATE_LENGTH);
-					kprintk_set_magic("!force", magic, value, buf);
+					kprintk("preset magic(!force):magic=%s, state=%d, buf=%s\n", magic, state, buf);
 				}
 				else
 				{
 					magic_update = 1;
-					crash_state = CRASH_STATE_INIT;
+					crash_state = 0;
 					magic_priority = KLOG_PRIORITY_KLOG_INIT;
 					snprintf(buf, KLOG_MAGIC_TOTAL_LENGTH, "%s%s", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE);
-					kprintk_set_magic("force", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE, buf);
+					kprintk("preset magic(force):magic=%s, state=%s, buf=%s\n", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE, buf);
 				}
 			}
 			else if(!strncmp(buf, KLOG_MAGIC_INIT, KLOG_MAGIC_LENGTH))//klog init
 			{
 				state = 0;
-				if(crash_state == CRASH_STATE_INIT)//only allow to clear if not any crash
+				if(crash_state == 0)//only allow to clear if not any crash
 				{
 					magic_update = 1;
 					magic_priority = KLOG_PRIORITY_KLOG_INIT;
 					snprintf(buf, KLOG_MAGIC_TOTAL_LENGTH, "%s%s", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE);
-					kprintk_set_magic("init", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE, buf);
+					kprintk("preset magic(init):magic=%s, state=%s, buf=%s\n", KLOG_MAGIC_INIT, KLOG_STATE_INIT_CODE, buf);
 				}
 				else
 				{
 					strncpy(buf, klog_magic, KLOG_MAGIC_LENGTH + KLOG_STATE_LENGTH);
-					kprintk_set_magic("!init", magic, value, buf);
+					kprintk("preset magic(!init):magic=%s, state=%d, buf=%s\n", magic, state, buf);
 				}
 			}
 			else
@@ -1032,12 +967,12 @@ void cklc_save_magic(char *magic, int state)
 				{
 					magic_update = 1;
 					magic_priority = priority;
-					kprintk_set_magic("higher", magic, value, buf);
+					kprintk("preset magic(warn-boot higher):magic=%s, state=%d, buf=%s\n", magic, state, buf);
 				}
 				else//lower or same priority magic, do not update magic
 				{
 					strncpy(buf, klog_magic, KLOG_MAGIC_LENGTH + KLOG_STATE_LENGTH);
-					kprintk_set_magic("lower", magic, value, buf);
+					kprintk("preset magic(warn-boot lower):magic=%s, state=%d, buf=%s\n", magic, state, buf);
 				}
 			}
 		}
@@ -1048,18 +983,18 @@ void cklc_save_magic(char *magic, int state)
 	{
 		if(state == KLOG_STATE_INIT)
 		{
-			if(crash_state == CRASH_STATE_INIT)//only allow to clear if not any crash
+			if(crash_state == 0)//only allow to clear if not any crash
 			{
 				strncpy(buf + KLOG_MAGIC_LENGTH, KLOG_STATE_INIT_CODE, KLOG_STATE_LENGTH);
 #ifdef CCI_KLOG_DETAIL_LOG
-				kprintk_set_magic("init", magic, KLOG_STATE_INIT_CODE, buf);
+				kprintk("preset state(init):magic=%s, state=%s, buf=%s\n", magic, KLOG_STATE_INIT_CODE, buf);
 #endif // #ifdef CCI_KLOG_DETAIL_LOG
 			}
-			else//crash, do not update state
+			else//panic, do not update state
 			{
 				strncpy(buf + KLOG_MAGIC_LENGTH, klog_magic + KLOG_MAGIC_LENGTH, KLOG_STATE_LENGTH);
 #ifdef CCI_KLOG_DETAIL_LOG
-				kprintk_set_magic("crash", magic, KLOG_STATE_INIT_CODE, buf);
+				kprintk("preset state(panic):magic=%s, state=%s, buf=%s\n", magic, KLOG_STATE_INIT_CODE, buf);
 #endif // #ifdef CCI_KLOG_DETAIL_LOG
 			}
 		}
@@ -1073,7 +1008,7 @@ void cklc_save_magic(char *magic, int state)
 			state = state & 0xFFF;
 			snprintf(buf + KLOG_MAGIC_LENGTH, KLOG_STATE_LENGTH + 1, "%03X", state);
 #ifdef CCI_KLOG_DETAIL_LOG
-			kprintk_set_magic("update", magic, value, buf);
+			kprintk("preset state(update):magic=%s, state=%d, buf=%s\n", magic, state, buf);
 #endif // #ifdef CCI_KLOG_DETAIL_LOG
 		}
 	}
@@ -1119,8 +1054,8 @@ void clear_klog(void)
 
 //reset crash state
 	cklc_save_magic(KLOG_MAGIC_FORCE_CLEAR, KLOG_STATE_INIT);
-	set_fault_state(FAULT_LEVEL_INIT, FAULT_TYPE_NONE, "");
-	crash_state = CRASH_STATE_INIT;
+	set_fault_state(0, 0, "");
+	crash_state = 0;
 
 //Clear Each KLOG Buffer
 	for(i = 0; i < KLOG_IGNORE; i++)
@@ -1379,7 +1314,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 			if(flag == 1)
 			{
-				crash_state = CRASH_STATE_INIT;
+				crash_state = crash_state & 0x10;
 			}
 			clear_klog();
 			break;
@@ -1472,7 +1407,7 @@ static long klog_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			}
 
 //record sysinfo to header
-			if((crash_state & CRASH_STATE_PREVIOUS) > 0)//not allow to overwrite if previous crash
+			if((crash_state & 0x02) > 0)//not allow to overwrite if previous crash
 			{
 				kprintk("sysinfo:not allow to record sysinfo\n");
 			}

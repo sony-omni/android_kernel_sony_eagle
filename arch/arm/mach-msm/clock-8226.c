@@ -208,6 +208,7 @@ static DEFINE_VDD_REGULATORS(vdd_dig, VDD_DIG_NUM, 1, vdd_corner, NULL);
 #define DIV_CLK2_ID	12
 /*[VY52] S Vince T, S Porting for Camera*/
 #define CCI_Camera
+#define CCI_Camera_Debug
 /*[VY52] S Vince T, E Porting for Camera*/
 DEFINE_CLK_RPM_SMD(pnoc_clk, pnoc_a_clk, RPM_BUS_CLK_TYPE, PNOC_ID, NULL);
 DEFINE_CLK_RPM_SMD(snoc_clk, snoc_a_clk, RPM_BUS_CLK_TYPE, SNOC_ID, NULL);
@@ -1557,8 +1558,6 @@ static struct branch_clk gcc_usb_hsic_system_clk = {
 	},
 };
 
-static DEFINE_CLK_MEASURE(wcnss_m_clk);
-
 #ifdef CONFIG_DEBUG_FS
 struct measure_mux_entry {
 	struct clk *c;
@@ -1614,7 +1613,6 @@ static struct measure_mux_entry measure_mux_GCC[] = {
 	{ &pnoc_clk.c, GCC_BASE, 0x010},
 	{ &snoc_clk.c, GCC_BASE, 0x000},
 	{ &cnoc_clk.c, GCC_BASE, 0x008},
-	{ &wcnss_m_clk, GCC_BASE, 0x0198},
 	/*
 	 * measure the gcc_bimc_kpss_axi_clk instead to account for the DDR
 	 * rate being gcc_bimc_clk/2.
@@ -3139,10 +3137,6 @@ static struct clk_lookup msm_clocks_8226[] = {
 	CLK_LOOKUP("apc3_m_clk", apc3_m_clk, ""),
 	CLK_LOOKUP("l2_m_clk", l2_m_clk, ""),
 
-	/* Measure clocks for WCNSS */
-	CLK_LOOKUP("measure",   measure_clk.c, "fb000000.qcom,wcnss-wlan"),
-	CLK_LOOKUP("wcnss_debug", wcnss_m_clk, "fb000000.qcom,wcnss-wlan"),
-
 	/* LPM Resources */
 	CLK_LOOKUP("xo",          cxo_lpm_clk.c, "fc4281d0.qcom,mpm"),
 
@@ -3159,7 +3153,7 @@ static struct clk_lookup msm_clocks_8226[] = {
 	CLK_LOOKUP("iface_clk",   gcc_mss_cfg_ahb_clk.c, "fc880000.qcom,mss"),
 	CLK_LOOKUP("mem_clk",    gcc_boot_rom_ahb_clk.c, "fc880000.qcom,mss"),
 	/* NFC */
-	CLK_LOOKUP("ref_clk",            cxo_d1_a_pin.c, "2-000e"),
+	CLK_LOOKUP("ref_clk",            cxo_d1_pin.c, "2-000e"),
 	/* PIL-PRONTO */
 	CLK_LOOKUP("xo", cxo_pil_pronto_clk.c, "fb21b000.qcom,pronto"),
 
@@ -3174,8 +3168,6 @@ static struct clk_lookup msm_clocks_8226[] = {
 	CLK_LOOKUP("xo",     xo_a_clk.c, "f9011050.qcom,acpuclk"),
 	CLK_LOOKUP("gpll0",  gpll0_ao.c, "f9011050.qcom,acpuclk"),
 	CLK_LOOKUP("a7sspll", a7sspll.c, "f9011050.qcom,acpuclk"),
-	CLK_LOOKUP("clk-4",  gpll0_ao.c, "f9011050.qcom,clock-a7"),
-	CLK_LOOKUP("clk-5", a7sspll.c, "f9011050.qcom,clock-a7"),
 	CLK_LOOKUP("kpss_ahb", kpss_ahb_clk_src.c, ""),
 
 	/* WCNSS CLOCKS */

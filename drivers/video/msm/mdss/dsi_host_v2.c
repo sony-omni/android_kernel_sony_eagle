@@ -935,18 +935,17 @@ void msm_dsi_cmdlist_rx(struct mdss_dsi_ctrl_pdata *ctrl,
 	if (req->cb)
 		req->cb(len);
 }
-int msm_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp)
+void msm_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp)
 {
 	struct dcs_cmd_req *req;
 	int dsi_on;
-	int ret = -EINVAL;
 
 	mutex_lock(&ctrl->mutex);
 	dsi_on = dsi_host_private->dsi_on;
 	mutex_unlock(&ctrl->mutex);
 	if (!dsi_on) {
 		pr_err("try to send DSI commands while dsi is off\n");
-		return ret;
+		return;
 	}
 
 	mutex_lock(&ctrl->cmd_mutex);
@@ -954,26 +953,19 @@ int msm_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp)
 
 	if (!req) {
 		mutex_unlock(&ctrl->cmd_mutex);
-		return ret;
+		return;
 	}
 
 	msm_dsi_clk_ctrl(&ctrl->panel_data, 1);
-
-	if (0 == (req->flags & CMD_REQ_LP_MODE))
-		dsi_set_tx_power_mode(0);
 
 	if (req->flags & CMD_REQ_RX)
 		msm_dsi_cmdlist_rx(ctrl, req);
 	else
 		msm_dsi_cmdlist_tx(ctrl, req);
 
-	if (0 == (req->flags & CMD_REQ_LP_MODE))
-		dsi_set_tx_power_mode(1);
-
 	msm_dsi_clk_ctrl(&ctrl->panel_data, 0);
 
 	mutex_unlock(&ctrl->cmd_mutex);
-	return 0;
 }
 
 static int msm_dsi_cal_clk_rate(struct mdss_panel_data *pdata,
@@ -1224,7 +1216,7 @@ static int msm_dsi_cont_on(struct mdss_panel_data *pdata)
 	return 0;
 }
 
-int msm_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
+static int msm_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 {
 	int ret = 0;
 

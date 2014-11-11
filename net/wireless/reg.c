@@ -848,18 +848,8 @@ static void handle_channel(struct wiphy *wiphy,
 		    r == -ERANGE)
 			return;
 
-		if (last_request->initiator == NL80211_REGDOM_SET_BY_DRIVER &&
-		    request_wiphy && request_wiphy == wiphy &&
-		    request_wiphy->flags & WIPHY_FLAG_STRICT_REGULATORY) {
-			REG_DBG_PRINT("Disabling freq %d MHz for good\n",
-			chan->center_freq);
-			chan->orig_flags |= IEEE80211_CHAN_DISABLED;
-			chan->flags = chan->orig_flags;
-		} else {
-			REG_DBG_PRINT("Disabling freq %d MHz\n",
-			chan->center_freq);
-			chan->flags |= IEEE80211_CHAN_DISABLED;
-		}
+		REG_DBG_PRINT("Disabling freq %d MHz\n", chan->center_freq);
+		chan->flags = IEEE80211_CHAN_DISABLED;
 		return;
 	}
 
@@ -1184,10 +1174,7 @@ void regulatory_update(struct wiphy *wiphy,
 		       enum nl80211_reg_initiator setby)
 {
 	mutex_lock(&reg_mutex);
-	if (last_request)
-		wiphy_update_regulatory(wiphy, last_request->initiator);
-	else
-		wiphy_update_regulatory(wiphy, setby);
+	wiphy_update_regulatory(wiphy, setby);
 	mutex_unlock(&reg_mutex);
 }
 
@@ -1243,8 +1230,7 @@ static void handle_channel_custom(struct wiphy *wiphy,
 			      "wide channel\n",
 			      chan->center_freq,
 			      KHZ_TO_MHZ(desired_bw_khz));
-		chan->orig_flags |= IEEE80211_CHAN_DISABLED;
-		chan->flags = chan->orig_flags;
+		chan->flags = IEEE80211_CHAN_DISABLED;
 		return;
 	}
 
@@ -2146,7 +2132,7 @@ static int __set_regdom(const struct ieee80211_regdomain *rd)
 		 * checking if the alpha2 changes if CRDA was already called
 		 */
 		if (!regdom_changes(rd->alpha2))
-			return -EALREADY;
+			return -EINVAL;
 	}
 
 	/*
@@ -2271,9 +2257,6 @@ int set_regdom(const struct ieee80211_regdomain *rd)
 	/* Note that this doesn't update the wiphys, this is done below */
 	r = __set_regdom(rd);
 	if (r) {
-		if (r == -EALREADY)
-			reg_set_request_processed();
-
 		kfree(rd);
 		mutex_unlock(&reg_mutex);
 		return r;

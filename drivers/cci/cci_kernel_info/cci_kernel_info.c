@@ -928,8 +928,7 @@ static long cci_kernel_info_ioctl(struct file *filp, unsigned int cmd, unsigned 
 	        {
                  if( ( (startup_magic_flag & 0xFFFFFFFF) == 0x4) && ( (warmboot_magic_flag & 0xFFFFFFFF) == 0) )
 	            {
-		        //charger_is_detected = 0;
-			charger_is_detected = 1;
+		        charger_is_detected = 1;	        
 	            }
 	        }
 

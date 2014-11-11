@@ -1,5 +1,4 @@
 /* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
- * Copyright (c) 2013 Sony Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -58,7 +57,6 @@
 /include/ "msm8226-mdss.dtsi"
 /include/ "msm8226-coresight.dtsi"
 /include/ "msm8226-iommu-domains.dtsi"
-/include/ "msm-rdbg.dtsi"
 
 &soc {
 	#address-cells = <1>;
@@ -283,9 +281,8 @@
 		qcom,hsusb-otg-phy-type = <2>;
 		qcom,hsusb-otg-mode = <1>;
 		qcom,hsusb-otg-otg-control = <2>;
-		qcom,hsusb-otg-disable-reset;
 		qcom,dp-manual-pullup;
-		qcom,usbin-vadc = <&pm8226_vadc>;
+		qcom,ahb-async-bridge-bypass;
 
 		qcom,msm-bus,name = "usb";
 		qcom,msm-bus,num-cases = <3>;
@@ -431,20 +428,19 @@
 		qcom,tapan-codec-9302;
 	};
 
-	qti,msm-pcm {
-		compatible = "qti,msm-pcm-dsp";
-		qti,msm-pcm-dsp-id = <0>;
+	qcom,msm-pcm {
+		compatible = "qcom,msm-pcm-dsp";
+		qcom,msm-pcm-dsp-id = <0>;
 	};
 
 	qcom,msm-pcm-routing {
 		compatible = "qcom,msm-pcm-routing";
 	};
 
-	qti,msm-pcm-low-latency {
-		compatible = "qti,msm-pcm-dsp";
-		qti,msm-pcm-dsp-id = <1>;
-		qti,msm-pcm-low-latency;
-		qti,latency-level = "regular";
+	qcom,msm-pcm-low-latency {
+		compatible = "qcom,msm-pcm-dsp";
+		qcom,msm-pcm-dsp-id = <1>;
+		qcom,msm-pcm-low-latency;
 	};
 
 	qcom,msm-pcm-lpa {
@@ -453,10 +449,6 @@
 
 	qcom,msm-compr-dsp {
 		compatible = "qcom,msm-compr-dsp";
-	};
-
-	qcom,msm-compress-dsp {
-		compatible = "qcom,msm-compress-dsp";
 	};
 
 	qcom,msm-voip-dsp {
@@ -760,7 +752,6 @@
 
 		qcom,bus-width = <8>;
 
-		qcom,cpu-dma-latency-us = <701>;
 		qcom,msm-bus,name = "sdcc1";
 		qcom,msm-bus,num-cases = <8>;
 		qcom,msm-bus,num-paths = <1>;
@@ -788,7 +779,6 @@
 
 		qcom,bus-width = <8>;
 
-		qcom,cpu-dma-latency-us = <701>;
 		qcom,msm-bus,name = "sdhc1";
 		qcom,msm-bus,num-cases = <8>;
 		qcom,msm-bus,num-paths = <1>;
@@ -819,7 +809,6 @@
 
 		qcom,bus-width = <4>;
 
-		qcom,cpu-dma-latency-us = <701>;
 		qcom,msm-bus,name = "sdcc2";
 		qcom,msm-bus,num-cases = <8>;
 		qcom,msm-bus,num-paths = <1>;
@@ -847,7 +836,6 @@
 
 		qcom,bus-width = <4>;
 
-		qcom,cpu-dma-latency-us = <701>;
 		qcom,msm-bus,name = "sdhc2";
 		qcom,msm-bus,num-cases = <8>;
 		qcom,msm-bus,num-paths = <1>;
@@ -874,7 +862,6 @@
 		reg-names = "core_mem", "dml_mem", "bam_mem";
 
 		qcom,bus-width = <4>;
-		qcom,cpu-dma-latency-us = <701>;
 		gpios = <&msmgpio 44 0>, /* CLK */
 			<&msmgpio 43 0>, /* CMD */
 			<&msmgpio 42 0>, /* DATA0 */
@@ -918,7 +905,6 @@
 		reg-names = "hc_mem", "core_mem";
 
 		qcom,bus-width = <4>;
-		qcom,cpu-dma-latency-us = <701>;
 		gpios = <&msmgpio 44 0>, /* CLK */
 			<&msmgpio 43 0>, /* CMD */
 			<&msmgpio 42 0>, /* DATA0 */
@@ -992,11 +978,10 @@
 		reg-names = "qup_phys_addr";
 		interrupts = <0 97 0>;
 		interrupt-names = "qup_err_intr";
+		gpios = <&msmgpio 11 0>, /* SCL */
+			<&msmgpio 10 0>; /* SDA */
 		qcom,i2c-bus-freq = <400000>;
 		qcom,i2c-src-freq = <19200000>;
-		qcom,sda-gpio = <&msmgpio 10 0>;
-		qcom,scl-gpio = <&msmgpio 11 0>;
-		qcom,master-id = <86>;
 	};
 	i2c@f9926000 { /* BLSP-1 QUP-4 */
 		cell-index = <0>;
@@ -1025,46 +1010,11 @@
 		qcom,scl-gpio = <&msmgpio 19 0>;
 	};
 
-	qcom,clock-a7@f9011050 {
-		compatible = "qcom,clock-a7-8226";
+	qcom,acpuclk@f9011050 {
+		compatible = "qcom,acpuclk-a7";
 		reg = <0xf9011050 0x8>;
-		reg-names = "rcg-base";
-		clock-names = "clk-4", "clk-5";
-		qcom,speed0-bin-v0 =
-			<         0 0>,
-			< 384000000 1>,
-			< 787200000 2>,
-			<1190400000 3>;
-
-		cpu-vdd-supply = <&apc_vreg_corner>;
-	};
-
-	qcom,cpubw {
-		compatible = "qcom,cpubw";
-		qcom,cpu-mem-ports = <1 512>;
-		qcom,bw-tbl =
-			< 1525 /* 200 MHz */ >,
-			< 2441 /* 320 MHz */ >,
-			< 3051 /* 400 MHz */ >,
-			< 4066 /* 533 MHz */ >;
-	};
-
-	qcom,msm-cpufreq@0 {
-		reg = <0 4>;
-		compatible = "qcom,msm-cpufreq";
-		qcom,cpufreq-table =
-			<  300000 1525 >,
-			<  384000 1525 >,
-			<  600000 1525 >,
-			<  787200 1525 >,
-			<  998400 4066 >,
-			< 1094400 4066 >,
-			< 1190400 4066 >,
-			< 1305600 4066 >,
-			< 1344000 4066 >,
-			< 1401600 4066 >,
-			< 1497600 4066 >,
-			< 1593600 4066 >;
+		reg-names = "rcg_base";
+		a7_cpu-supply = <&apc_vreg_corner>;
 	};
 
 	qcom,ocmem@fdd00000 {
@@ -1261,9 +1211,9 @@
 		qcom,bam-consumer-pipe-index = <12>;
 		qcom,bam-producer-pipe-index = <13>;
 		qcom,master-id = <86>;
-		/* 20140124 Mike */
+		/* 20130724 */
 		status = "disabled";
-		/* 20140124 Mike */
+		/* 20130724 */
 	};
 
 	qcom,bam_dmux@fc834000 {
@@ -1286,8 +1236,11 @@
                 qcom,msm-bus,num-cases = <2>;
                 qcom,msm-bus,num-paths = <1>;
                 qcom,msm-bus,vectors-KBps =
-                                <1 618 0 0>,
-                                <1 618 0 800>;
+								/*CR#606371 fix MMSS clock*/
+                                //<1 618 0 0>,
+                                //<1 618 0 800>;
+								<54 618 0 0>,
+								<54 618 0 800>;
 	};
 
 	qcom,tz-log@fe805720 {
@@ -1342,16 +1295,15 @@
 		qcom,disk-encrypt-pipe-pair = <2>;
 		qcom,hlos-ce-hw-instance = <0>;
 		qcom,qsee-ce-hw-instance = <0>;
-		qcom,support-bus-scaling;
 		qcom,msm-bus,name = "qseecom-noc";
 		qcom,msm-bus,num-cases = <4>;
 		qcom,msm-bus,active-only = <0>;
 		qcom,msm-bus,num-paths = <1>;
 		qcom,msm-bus,vectors-KBps =
 				<55 512 0 0>,
-				<55 512 0 0>,
-				<55 512 120000 1200000>,
-				<55 512 393600 3936000>;
+				<55 512 3936000 393600>,
+				<55 512 3936000 393600>,
+				<55 512 3936000 393600>;
 	};
 
 	qcom,qcrypto@fd404000 {
@@ -1395,23 +1347,6 @@
 		qcom,irq-is-percpu;
 		interrupts = <1 7 0xf00>;
 	};
-
-	sony,ric_info {
-		compatible = "sony_ric";
-		sony,num-partition = <4>;
-		sony,partition-names = "system", "userdata", "cache", "apps_log";
-		sony,mount_paths = "/system", "/data", "/cache", "/mnt/idd";
-		sony,mount-flags = <0x1 0x6 0x6 0xE>;
-	};
-
-	/* CCI: Mike, add new illumination controller/chip */
-	cci,illumination_led@0 {
-		compatible = "kinet,ktd2024";
-		label = "illumination_led";
-		/* cci,enable_gpio = <62>; */
-		cci,control_gpio = <0>;
-	};
-
 };
 
 &gdsc_venus {
@@ -1557,11 +1492,10 @@
 		qcom,pre-div-channel-scaling = <0>;
 		qcom,calibration-type = "ratiometric";
 		qcom,scale-function = <1>;
-		//[Bug1121] Jonny_Chan
+		//[Bug832] S Jonny_Chan
 		qcom,hw-settle-time = <0xF>;
 		qcom,fast-avg-setup = <3>;
 		qcom,btm-channel-number = <0x48>;
-		qcom,meas-interval-timer-idx = <2>;
 	};
 
 	chan@8 {

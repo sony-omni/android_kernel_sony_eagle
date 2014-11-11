@@ -172,10 +172,6 @@ static void enable_emergency_dload_mode(void)
 		__raw_writel(EMERGENCY_DLOAD_MAGIC3,
 				emergency_dload_mode_addr +
 				(2 * sizeof(unsigned int)));
-
-		/* Need disable the pmic wdt, then the emergency dload mode
-		 * will not auto reset. */
-		qpnp_pon_wd_config(0);
 		mb();
 	}
 }
@@ -278,9 +274,7 @@ static void msm_power_off(void)
 	__raw_writel(CONFIG_WARMBOOT_NONE, restart_reason);
 #ifdef CONFIG_CCI_KLOG	
 	*unknowflag = 0;
-#ifdef #ifdef CONFIG_CCI_KLOG
 	*backupcrashflag = 0;
-#endif
 #endif
 	mb();
 	/* MSM initiated power off, lower ps_hold */
@@ -449,14 +443,11 @@ static void msm_restart_prepare(const char *cmd)
 			__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
 			__raw_writel(0x59564352, CCI_RCOVRY_ON_FLAG_ADDR); /*YVCR*/
 			mb();
-//Joker mark for fix merge conflict, may need to fix
-//			__raw_writel(0x77665502, restart_reason);
-//		} else if (!strcmp(cmd, "rtc")) {
-//			__raw_writel(0x77665503, restart_reason);
-//Joker mark for fix merge conflict, may need to fix
 		} else if (!strncmp(cmd, "oem-", 4)) {
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
+			__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
+			mb();
 //[VY5x] ==> CCI KLog, modified by Jimmy@CCI
 #ifdef CONFIG_CCI_KLOG
 			snprintf(buf, KLOG_MAGIC_LENGTH + 1, "%s%lX", KLOG_MAGIC_OEM_COMMAND, code);
@@ -533,8 +524,6 @@ static void msm_restart_prepare(const char *cmd)
 #endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, modified by Jimmy@CCI
-			__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
-			mb();
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
 		} 
@@ -569,11 +558,10 @@ static void msm_restart_prepare(const char *cmd)
 		__raw_writel(CONFIG_WARMBOOT_NORMAL , restart_reason);		
 		mb();
 		pr_warn("pmic is running on hardreset, it will starting from cold boot\n");
-			cklc_save_magic(KLOG_MAGIC_REBOOT, KLOG_STATE_NONE);
+		cklc_save_magic(KLOG_MAGIC_REBOOT, KLOG_STATE_NONE);
 	}
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, modified by Jimmy@CCI
-
 	flush_cache_all();
 	outer_flush_all();
 }
@@ -719,9 +707,15 @@ static int __init msm_restart_init(void)
 	restart_reason = MSM_IMEM_BASE + RESTART_REASON_ADDR;
 	pm_power_off = msm_power_off;
 
+	create_proc_read_entry("ramdump_zip_on", 0, NULL, read_ramdump_zip_on_flag, NULL);
+	create_proc_read_entry("rcovry_on", 0, NULL, read_rcovry_on_flag, NULL);
+
 	//quiet reboot
 	create_proc_read_entry("quiet_reboot_on", 0, NULL, read_quiet_reboot_flag, NULL);
 	create_proc_read_entry("quiet_reboot_on_erase", 0, NULL, read_quiet_reboot_flag_erase, NULL);
+
+	if (scm_is_call_available(SCM_SVC_PWR, SCM_IO_DISABLE_PMIC_ARBITER) > 0)
+		scm_pmic_arbiter_disable_supported = true;
 
 	set_warmboot();
 #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
@@ -730,13 +724,6 @@ static int __init msm_restart_init(void)
 	__raw_writel(CONFIG_WARMBOOT_NORMAL, restart_reason);
 #endif	
 	mb();
-
-	create_proc_read_entry("ramdump_zip_on", 0, NULL, read_ramdump_zip_on_flag, NULL);
-	create_proc_read_entry("rcovry_on", 0, NULL, read_rcovry_on_flag, NULL);
-
-	if (scm_is_call_available(SCM_SVC_PWR, SCM_IO_DISABLE_PMIC_ARBITER) > 0)
-		scm_pmic_arbiter_disable_supported = true;
-
 	return 0;
 }
 early_initcall(msm_restart_init);

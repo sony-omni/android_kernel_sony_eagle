@@ -273,6 +273,15 @@
 		qcom,cdc-mclk-gpios = <&pm8226_gpios 1 0>;
 		qcom,cdc-vdd-spkr-gpios = <&pm8226_gpios 2 0>;
 	};
+
+	/* CCI: Mike, add new illumination controller/chip */
+	cci,illumination_led@0 {
+		compatible = "kinet,ktd2024";
+		label = "illumination_led";
+		/* cci,enable_gpio = <62>; */
+		cci,control_gpio = <0>;
+	};
+
 };
 
 &usb_otg {
@@ -415,13 +424,6 @@
 				qcom,source-sel = <14>;
 				qcom,mode-ctrl = <0x60>;
 				qcom,pwm-channel = <3>;
-				qcom,start-idx = <1>;
-				qcom,ramp-step-ms = <120>;
-				qcom,duty-pcts = [00 00 00 00 00
-						00 00 00 00 00
-						50 00 00 00 00
-						00 00 00 00 00
-						00];
 				qcom,use-blink;
 			};
 		};
@@ -431,24 +433,16 @@
 			qcom,led_mpp_4 {
 				label = "mpp";
 				linux,name = "rgb_green";
-				linux,default-trigger = "none";
+				linux,default-trigger = "battery-full";
 				qcom,default-state = "off";
 				qcom,max-current = <40>;
 				qcom,current-setting = <5>;
 				qcom,id = <6>;
 				qcom,mode = "pwm";
 				qcom,pwm-us = <1000>;
-
 				qcom,source-sel = <8>;
 				qcom,mode-ctrl = <0x60>;
 				qcom,pwm-channel = <0>;
-				qcom,start-idx = <1>;
-				qcom,ramp-step-ms = <120>;
-				qcom,duty-pcts = [00 00 00 00 00
-						00 00 00 00 00
-						50 00 00 00 00
-						00 00 00 00 00
-						00];
 				qcom,use-blink;
 			};
 		};
@@ -458,7 +452,7 @@
 			qcom,led_mpp_6 {
 				label = "mpp";
 				linux,name = "rgb_red";
-				linux,default-trigger = "none";
+				linux,default-trigger = "battery-charging";
 				qcom,default-state = "off";
 				qcom,max-current = <40>;
 				qcom,current-setting = <5>;
@@ -468,13 +462,6 @@
 				qcom,mode-ctrl = <0x60>;
 				qcom,source-sel = <10>;
 				qcom,pwm-channel = <5>;
-				qcom,start-idx = <1>;
-				qcom,ramp-step-ms = <120>;
-				qcom,duty-pcts = [00 00 00 00 00
-						00 00 00 00 00
-						50 00 00 00 00
-						00 00 00 00 00
-						00];
 				qcom,use-blink;
 			};
 		};
@@ -642,7 +629,7 @@
 };
 
 &pm8226_chg {
-	/*qcom,charging-disabled;*/	/*[Bug1036] Jonny_Chan */
+	/*qcom,charging-disabled;*/
 	qcom,battery-data = <&mtp_batterydata>;
 };
 

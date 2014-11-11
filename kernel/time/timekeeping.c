@@ -21,11 +21,11 @@
 #include <linux/tick.h>
 #include <linux/stop_machine.h>
 
-//S [VY52/VY55][bug_1807] frank_chan add
+//S [VY52/VY55][bug_486] frank_chan add
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
 #include <linux/rtc.h>
 #endif // #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
-//E [VY52/VY55][bug_1807] frank_chan add
+//E [VY52/VY55][bug_486] frank_chan add
 
 /* Structure holding internal timekeeping values. */
 struct timekeeper {
@@ -81,12 +81,12 @@ struct timekeeper {
 };
 
 static struct timekeeper timekeeper;
-//S [VY52/VY55][bug_1807] frank_chan add
+//S [VY52/VY55][bug_486] frank_chan add
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
 static struct timespec last_time;
 static struct rtc_time tm_now;
 #endif // #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
-//E [VY52/VY55][bug_1807] frank_chan add
+//E [VY52/VY55][bug_486] frank_chan add
 /*
  * This read-write spinlock protects us from races in SMP while
  * playing with xtime.
@@ -1254,7 +1254,7 @@ struct timespec current_kernel_time(void)
 }
 EXPORT_SYMBOL(current_kernel_time);
 
-//S [VY52/VY55][bug_1807] frank_chan add
+//S [VY52/VY55][bug_486] frank_chan add
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
 struct timespec tm_current_kernel_time(struct rtc_time * tm)
 {
@@ -1348,7 +1348,7 @@ struct timespec tm_current_kernel_time(struct rtc_time * tm)
 }
 EXPORT_SYMBOL(tm_current_kernel_time);
 #endif // #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
-//E [VY52/VY55][bug_1807] frank_chan add
+//E [VY52/VY55][bug_486] frank_chan add
 
 struct timespec get_monotonic_coarse(void)
 {

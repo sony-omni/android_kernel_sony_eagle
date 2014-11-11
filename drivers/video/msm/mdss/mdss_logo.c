@@ -201,7 +201,6 @@ int mdss_logo_close_write(struct file *file, const char __user *buffer, unsigned
 		printk(KERN_INFO "close logo.\n");
     fb_info->fbops->fb_pan_display(&fb_info->var, fb_info);
 		fb_info->fbops->fb_release(fb_info, 0);
-    b_draw_logo_flag = 0;//[VVVV] JackBB 2014/06/24
 	}
 
   return count;
@@ -219,7 +218,6 @@ int __init logo_init(void)
     //quiet reboot
     if ( is_quiet_reboot_flag() == 1)
     {
-        printk(KERN_INFO "quiet_reboot,so skip draw_logo()\n");
         return 0;
     }
     //quiet reboot

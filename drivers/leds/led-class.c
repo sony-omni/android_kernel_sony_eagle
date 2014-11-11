@@ -92,7 +92,7 @@ static ssize_t led_max_brightness_show(struct device *dev,
 	return snprintf(buf, LED_BUFF_SIZE, "%u\n", led_cdev->max_brightness);
 }
 
-//S:EllenLu 20140123 ,[LED]add for SOMC Illumination
+//S:EllenLu 20130709 ,[LED]add for SOMC Illumination
 static void led_update_flashmode(struct led_classdev *led_cdev)
 {
 	if (led_cdev->mode_get)
@@ -206,17 +206,17 @@ static ssize_t led_offms_store(struct device *dev,
 	
 	return ret;
 }
-//E:EllenLu 20140123 ,[LED]add for SOMC Illumination
+//E:EllenLu 20130709 ,[LED]add for SOMC Illumination
 
 static struct device_attribute led_class_attrs[] = {
 	__ATTR(brightness, 0644, led_brightness_show, led_brightness_store),
 	__ATTR(max_brightness, 0644, led_max_brightness_show,
 			led_max_brightness_store),
-//S:EllenLu 20140123 ,[LED]add for SOMC Illumination
+//S:EllenLu 20130709 ,[LED]add for SOMC Illumination
 	__ATTR(flashmode, 0644, led_mode_show, led_mode_store),
 	__ATTR(onms, 0644, led_onms_show, led_onms_store),
 	__ATTR(offms, 0644, led_offms_show, led_offms_store),
-//E:EllenLu 20140123 ,[LED]add for SOMC Illumination
+//E:EllenLu 20130709 ,[LED]add for SOMC Illumination
 #ifdef CONFIG_LEDS_TRIGGERS
 	__ATTR(trigger, 0644, led_trigger_show, led_trigger_store),
 #endif

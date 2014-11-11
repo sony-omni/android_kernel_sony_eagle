@@ -37,12 +37,12 @@
 
 #include "dummy.h"
 
-/* KevinA_Lin 20140218 */
+/* KevinA_Lin 20130927 */
 #ifdef ORG_VER
 #else
 #include <linux/suspend_info.h>
 #endif
-/* KevinA_Lin 20140218 */
+/* KevinA_Lin 20130927 */
 
 #define rdev_crit(rdev, fmt, ...)					\
 	pr_crit("%s: " fmt, rdev_get_name(rdev), ##__VA_ARGS__)
@@ -1996,8 +1996,8 @@ static int _regulator_do_set_voltage(struct regulator_dev *rdev,
 int regulator_set_voltage(struct regulator *regulator, int min_uV, int max_uV)
 {
 	struct regulator_dev *rdev = regulator->rdev;
+	int prev_min_uV, prev_max_uV;
 	int ret = 0;
-	int old_min_uV, old_max_uV;
 
 	mutex_lock(&rdev->mutex);
 
@@ -2020,26 +2020,22 @@ int regulator_set_voltage(struct regulator *regulator, int min_uV, int max_uV)
 	if (ret < 0)
 		goto out;
 
-	/* restore original values in case of error */
-	old_min_uV = regulator->min_uV;
-	old_max_uV = regulator->max_uV;
+	prev_min_uV = regulator->min_uV;
+	prev_max_uV = regulator->max_uV;
+
 	regulator->min_uV = min_uV;
 	regulator->max_uV = max_uV;
 
 	ret = regulator_check_consumers(rdev, &min_uV, &max_uV);
-	if (ret < 0)
-		goto out2;
+	if (ret < 0) {
+		regulator->min_uV = prev_min_uV;
+		regulator->max_uV = prev_max_uV;
+		goto out;
+	}
 
 	ret = _regulator_do_set_voltage(rdev, min_uV, max_uV);
-	if (ret < 0)
-		goto out2;
 
 out:
-	mutex_unlock(&rdev->mutex);
-	return ret;
-out2:
-	regulator->min_uV = old_min_uV;
-	regulator->max_uV = old_max_uV;
 	mutex_unlock(&rdev->mutex);
 	return ret;
 }
@@ -3743,7 +3739,7 @@ unlock:
 }
 late_initcall(regulator_init_complete);
 
-/* KevinA_Lin 20140218 */
+/* KevinA_Lin 20130927 */
 #if 0
 static unsigned int is_regulator_suspend_valid = 0;
 static unsigned int regulator_number = 0;
@@ -3919,4 +3915,4 @@ static int __init regulator_suspend_info_init(void)
 module_init(regulator_suspend_info_init);
 #endif
 
-/* KevinA_Lin 20140218 */
+/* KevinA_Lin 20130927 */

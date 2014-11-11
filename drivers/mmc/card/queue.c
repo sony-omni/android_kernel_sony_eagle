@@ -86,8 +86,7 @@ static int mmc_queue_thread(void *d)
 				continue; /* fetch again */
 			} else if ((mq->flags & MMC_QUEUE_URGENT_REQUEST) &&
 				   (mq->mqrq_cur->req &&
-				!(mq->mqrq_cur->req->cmd_flags &
-				       MMC_REQ_NOREINSERT_MASK))) {
+				!(mq->mqrq_cur->req->cmd_flags & REQ_URGENT))) {
 				/*
 				 * clean current request when urgent request
 				 * processing in progress and current request is
@@ -443,7 +442,7 @@ success:
        #ifdef ORG_VER
 	kfree(mqrq_prev->bounce_sg);
        #else
-        vfree(mqrq_prev->bounce_sg);
+       vfree(mqrq_prev->bounce_sg);
        #endif
        /**/
 	mqrq_prev->bounce_sg = NULL;
@@ -453,7 +452,7 @@ success:
        #ifdef ORG_VER
 	kfree(mqrq_cur->sg);
        #else
-        vfree(mqrq_cur->sg);
+       vfree(mqrq_cur->sg);
        #endif
        /**/
 	mqrq_cur->sg = NULL;
@@ -462,7 +461,7 @@ success:
        #ifdef ORG_VER
 	kfree(mqrq_cur->bounce_buf);
        #else
-        vfree(mqrq_cur->bounce_buf);
+       vfree(mqrq_cur->bounce_buf);
        #endif
        /**/
 	mqrq_cur->bounce_buf = NULL;
@@ -471,7 +470,7 @@ success:
        #ifdef ORG_VER
 	kfree(mqrq_prev->sg);
        #else
-        vfree(mqrq_prev->sg);
+       vfree(mqrq_prev->sg);
        #endif
        /**/
 	mqrq_prev->sg = NULL;
@@ -480,7 +479,7 @@ success:
        #ifdef ORG_VER
 	kfree(mqrq_prev->bounce_buf);
        #else
-        vfree(mqrq_prev->bounce_buf);
+       vfree(mqrq_prev->bounce_buf);
        #endif
        /**/
 	mqrq_prev->bounce_buf = NULL;
@@ -512,7 +511,7 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
        #ifdef ORG_VER
 	kfree(mqrq_cur->bounce_sg);
        #else
-        vfree(mqrq_cur->bounce_sg);
+       vfree(mqrq_cur->bounce_sg);
 	#endif
        /**/
 	mqrq_cur->bounce_sg = NULL;
@@ -521,7 +520,7 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
        #ifdef ORG_VER
 	kfree(mqrq_cur->sg);
        #else
-        vfree(mqrq_cur->sg);
+       vfree(mqrq_cur->sg);
        #endif
        /**/
 	mqrq_cur->sg = NULL;
@@ -530,8 +529,8 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
        #ifdef ORG_VER
 	kfree(mqrq_cur->bounce_buf);
        #else
-        vfree(mqrq_cur->bounce_buf);
-       #endif
+       vfree(mqrq_cur->bounce_buf);
+	#endif
        /**/
 	mqrq_cur->bounce_buf = NULL;
 
@@ -539,7 +538,7 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
        #ifdef ORG_VER
 	kfree(mqrq_prev->bounce_sg);
        #else
-        vfree(mqrq_prev->bounce_sg);
+       vfree(mqrq_prev->bounce_sg);
        #endif
        /**/
 	mqrq_prev->bounce_sg = NULL;
@@ -548,7 +547,7 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
        #ifdef ORG_VER
 	kfree(mqrq_prev->sg);
        #else
-        vfree(mqrq_prev->sg);
+       vfree(mqrq_prev->sg);
        #endif
        /**/
 	mqrq_prev->sg = NULL;
@@ -557,7 +556,7 @@ void mmc_cleanup_queue(struct mmc_queue *mq)
        #ifdef ORG_VER
 	kfree(mqrq_prev->bounce_buf);
        #else
-        vfree(mqrq_prev->bounce_buf);
+       vfree(mqrq_prev->bounce_buf);
        #endif
        /**/
 	mqrq_prev->bounce_buf = NULL;

@@ -344,7 +344,7 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 	}
 	if (selected) {
 		lowmem_print(1, "send sigkill to %d (%s), adj %d, size %d, ofree %d %d %d\n",
-			     selected->pid, selected->comm,
+				selected->pid, selected->comm,
 				selected_oom_score_adj, selected_tasksize, other_free,
 				other_file, average_free);
 		lowmem_deathpending_timeout = jiffies + HZ;

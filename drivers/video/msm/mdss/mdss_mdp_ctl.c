@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -611,24 +611,10 @@ int mdss_mdp_wb_mixer_destroy(struct mdss_mdp_mixer *mixer)
 	return 0;
 }
 
-static inline struct mdss_mdp_ctl *mdss_mdp_get_split_ctl(
-		struct mdss_mdp_ctl *ctl)
-{
-	if (ctl && ctl->mixer_right && (ctl->mixer_right->ctl != ctl))
-		return ctl->mixer_right->ctl;
-
-	return NULL;
-}
-
 int mdss_mdp_ctl_splash_finish(struct mdss_mdp_ctl *ctl, bool handoff)
 {
-	struct mdss_mdp_ctl *sctl = mdss_mdp_get_split_ctl(ctl);
-	if (sctl)
-		sctl->panel_data->panel_info.cont_splash_enabled = 0;
-
 	switch (ctl->panel_data->panel_info.type) {
 	case MIPI_VIDEO_PANEL:
-	case EDP_PANEL:
 		return mdss_mdp_video_reconfigure_splash_done(ctl, handoff);
 	case MIPI_CMD_PANEL:
 		return mdss_mdp_cmd_reconfigure_splash_done(ctl, handoff);
@@ -648,6 +634,15 @@ static inline int mdss_mdp_set_split_ctl(struct mdss_mdp_ctl *ctl,
 	ctl->mixer_right = split_ctl->mixer_left;
 
 	return 0;
+}
+
+static inline struct mdss_mdp_ctl *mdss_mdp_get_split_ctl(
+		struct mdss_mdp_ctl *ctl)
+{
+	if (ctl && ctl->mixer_right && (ctl->mixer_right->ctl != ctl))
+		return ctl->mixer_right->ctl;
+
+	return NULL;
 }
 
 static int mdss_mdp_ctl_fbc_enable(int enable,
@@ -1123,7 +1118,6 @@ static int mdss_mdp_ctl_start_sub(struct mdss_mdp_ctl *ctl, bool handoff)
 int mdss_mdp_ctl_start(struct mdss_mdp_ctl *ctl, bool handoff)
 {
 	struct mdss_mdp_ctl *sctl;
-	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	int ret = 0;
 
 	if (ctl->power_on) {
@@ -1176,7 +1170,6 @@ int mdss_mdp_ctl_start(struct mdss_mdp_ctl *ctl, bool handoff)
 			mdss_mdp_ctl_write(ctl, MDSS_MDP_REG_CTL_PACK_3D, 0);
 		}
 	}
-	mdss_mdp_hist_intr_setup(&mdata->hist_intr, MDSS_IRQ_RESUME);
 
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
 error:
@@ -1189,7 +1182,6 @@ int mdss_mdp_ctl_stop(struct mdss_mdp_ctl *ctl)
 {
 	struct mdss_mdp_ctl *sctl;
 	int ret = 0;
-	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	u32 off;
 
 	if (!ctl->power_on) {
@@ -1204,8 +1196,6 @@ int mdss_mdp_ctl_stop(struct mdss_mdp_ctl *ctl)
 	mutex_lock(&ctl->lock);
 
 	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
-
-	mdss_mdp_hist_intr_setup(&mdata->hist_intr, MDSS_IRQ_SUSPEND);
 
 	if (ctl->stop_fnc)
 		ret = ctl->stop_fnc(ctl);
@@ -1463,8 +1453,6 @@ update_mixer:
 
 	if (mixer->num == MDSS_MDP_INTF_LAYERMIXER3)
 		ctl->flush_bits |= BIT(20);
-	else if (mixer->type == MDSS_MDP_MIXER_TYPE_WRITEBACK)
-		ctl->flush_bits |= BIT(9) << mixer->num;
 	else
 		ctl->flush_bits |= BIT(6) << mixer->num;
 
@@ -1733,12 +1721,9 @@ static int mdss_mdp_mixer_update(struct mdss_mdp_mixer *mixer)
 int mdss_mdp_ctl_update_fps(struct mdss_mdp_ctl *ctl, int fps)
 {
 	int ret = 0;
-	struct mdss_mdp_ctl *sctl = NULL;
-
-	sctl = mdss_mdp_get_split_ctl(ctl);
 
 	if (ctl->config_fps_fnc)
-		ret = ctl->config_fps_fnc(ctl, sctl, fps);
+		ret = ctl->config_fps_fnc(ctl, fps);
 
 	return ret;
 }
@@ -1922,10 +1907,8 @@ int mdss_mdp_display_commit(struct mdss_mdp_ctl *ctl, void *arg)
 	if (ctl->wait_pingpong)
 		ctl->wait_pingpong(ctl, NULL);
 
-	if (ctl->mfd && ctl->mfd->dcm_state != DTM_ENTER)
-		/* postprocessing setup, including dspp */
-		mdss_mdp_pp_setup_locked(ctl);
-
+	/* postprocessing setup, including dspp */
+	mdss_mdp_pp_setup_locked(ctl);
 	mdss_mdp_ctl_write(ctl, MDSS_MDP_REG_CTL_FLUSH, ctl->flush_bits);
 	if (sctl) {
 		mdss_mdp_ctl_write(sctl, MDSS_MDP_REG_CTL_FLUSH,

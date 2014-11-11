@@ -339,7 +339,7 @@ static irqreturn_t wdog_bark_handler(int irq, void *dev_id)
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
 #ifdef CONFIG_CCI_KLOG
 #if CCI_KLOG_CRASH_SIZE
-	set_fault_state(FAULT_LEVEL_WATCHDOG, FAULT_TYPE_NONE, "watchdog");
+	set_fault_state(0x6, 0, "watchdog");
 #endif // #if CCI_KLOG_CRASH_SIZE
 	cklc_save_magic(KLOG_MAGIC_FIQ_HANG, KLOG_STATE_NONE);
 #endif // #ifdef CONFIG_CCI_KLOG

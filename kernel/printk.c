@@ -44,11 +44,11 @@
 
 #include <asm/uaccess.h>
 
-//S [VY52/VY55][bug_1807] frank_chan add
+//S [VY52/VY55][bug_486] frank_chan add
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
 #include <linux/rtc.h>
 #endif // #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
-//E [VY52/VY55][bug_1807] frank_chan add
+//E [VY52/VY55][bug_486] frank_chan add
 
 #include <mach/msm_rtb.h>
 #define CREATE_TRACE_POINTS
@@ -916,11 +916,11 @@ static inline void printk_delay(void)
 	}
 }
 
-//S [VY52/VY55][bug_1807] frank_chan add
+//S [VY52/VY55][bug_486] frank_chan add
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
 struct timespec tm_current_kernel_time(struct rtc_time * tm);
 #endif // #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
-//E [VY52/VY55][bug_1807] frank_chan add
+//E [VY52/VY55][bug_486] frank_chan add
 
 asmlinkage int vprintk(const char *fmt, va_list args)
 {
@@ -1027,7 +1027,7 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 				/* Add the current time stamp */
 				char tbuf[50], *tp;
 				unsigned tlen;
-//S [VY52/VY55][bug_1807] frank_chan add
+//S [VY52/VY55][bug_486] frank_chan add
 #ifdef CONFIG_CCI_PRINTK_TIME
 				struct timespec now;
 #ifdef CONFIG_CCI_PRINTK_TIME_ISO_8601
@@ -1049,7 +1049,7 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 						(unsigned long) t,
 						nanosec_rem / 1000);
 #endif // #ifdef CONFIG_CCI_PRINTK_TIME
-//E [VY52/VY55][bug_1807] frank_chan add
+//E [VY52/VY55][bug_486] frank_chan add
 
 				for (tp = tbuf; tp < tbuf + tlen; tp++)
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI

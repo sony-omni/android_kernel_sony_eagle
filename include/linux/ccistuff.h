@@ -6,7 +6,6 @@
 #define __driver_stuff__
 
 #define SIGNATURE					0x22334455
-#define CONFIG_WARMBOOT_UNDEFINED   0xFFFFFFFF
 #define CONFIG_WARMBOOT_NONE        0x00000000
 #define CONFIG_WARMBOOT_FOTA        0x6f656d46
 #define CONFIG_WARMBOOT_S1          0x6f656d53

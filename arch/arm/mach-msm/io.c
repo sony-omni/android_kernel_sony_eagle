@@ -47,14 +47,12 @@
 
 #define MSM_DEVICE(name) MSM_CHIP_DEVICE(name, MSM)
 
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 #ifdef CONFIG_CCI_KLOG
 #define CCI_RAMDUMP_SIZE                                    (0x400000) //4M
 #define CCI_RAMDUMP_START_ADDR_PHYSICAL     (CCI_KLOG_START_ADDR_PHYSICAL - CCI_RAMDUMP_SIZE)  //0x5C00000
 #endif // #ifdef CONFIG_CCI_KLOG
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 
 /* msm_shared_ram_phys default value of 0x00100000 is the most common value
  * and should work as-is for any target without stacked memory.
@@ -64,11 +62,9 @@ phys_addr_t msm_shared_ram_phys = 0x00100000;
 //[VY5x] ==> CCI KLog, added by Jimmy@CCI
 #ifdef CONFIG_CCI_KLOG
 unsigned int msm_klog_phys = CCI_KLOG_START_ADDR_PHYSICAL;
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 unsigned int msm_ramdump_phys = CCI_RAMDUMP_START_ADDR_PHYSICAL;
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
 
@@ -85,12 +81,10 @@ static void __init msm_map_io(struct map_desc *io_desc, int size)
 			io_desc[i].pfn = __phys_to_pfn(msm_shared_ram_phys);
 		if (io_desc[i].virtual == (unsigned long)MSM_KLOG_BASE)
 			io_desc[i].pfn = __phys_to_pfn(msm_klog_phys);
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 		if (io_desc[i].virtual == (unsigned long)MSM_RAMDUMP_BASE)
 			io_desc[i].pfn = __phys_to_pfn(msm_ramdump_phys);
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 	}
 #else // #ifdef CONFIG_CCI_KLOG
 		if (io_desc[i].virtual == (unsigned long)MSM_SHARED_RAM_BASE)
@@ -631,15 +625,13 @@ static struct map_desc msm_8226_io_desc[] __initdata = {
 		.length =   MSM_KLOG_SIZE,
 		.type =     MT_DEVICE,
 	},
-//S, Ramdump
-#ifdef CCI_KLOG_ALLOW_FORCE_PANIC
+//[VY5x] ==> CCI Ramdump, added by Leo@CCI
 	{
 		.virtual =  (unsigned long) MSM_RAMDUMP_BASE,
 		.length =   CCI_RAMDUMP_SIZE,
 		.type =     MT_DEVICE,
 	},
-#endif // #ifdef CCI_KLOG_ALLOW_FORCE_PANIC
-//E, Ramdump
+//[VY5x] <== CCI Ramdump, added by Leo@CCI
 #endif // #ifdef CONFIG_CCI_KLOG
 //[VY5x] <== CCI KLog, added by Jimmy@CCI
 #ifdef CONFIG_DEBUG_MSM8226_UART

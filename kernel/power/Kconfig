@@ -168,7 +168,7 @@ config CCI_PM_ACTIVE_WAKELOCK_LOG_PERIOD
 	int "Print active wakelock log"
 	range 1 10
 	depends on SUSPEND
-	default 5
+	default 1
 	help
 	  This option configures the print period (seconds) of the CCI active wakelock log.
 	  When wake_lock and wake_unlock have been called, the we will call print_active_locks() and record the timestamp.

@@ -447,13 +447,6 @@ static int __init cma_init_reserved_areas(void)
 }
 core_initcall(cma_init_reserved_areas);
 
-phys_addr_t cma_get_base(struct device *dev)
-{
-	struct cma *cma = dev_get_cma_area(dev);
-
-	return cma->base_pfn << PAGE_SHIFT;
-}
-
 /**
  * dma_alloc_from_contiguous() - allocate pages from contiguous area
  * @dev:   Pointer to device for which the allocation is performed.
@@ -547,9 +540,9 @@ bool dma_release_from_contiguous(struct device *dev, struct page *pages,
 
 	VM_BUG_ON(pfn + count > cma->base_pfn + cma->count);
 
-	free_contig_range(pfn, count);
 	mutex_lock(&cma_mutex);
 	bitmap_clear(cma->bitmap, pfn - cma->base_pfn, count);
+	free_contig_range(pfn, count);
 	mutex_unlock(&cma_mutex);
 
 	return true;

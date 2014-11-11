@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -196,14 +196,12 @@ static int mdss_mdp_cmd_tearcheck_setup(struct mdss_mdp_ctl *ctl, int enable)
 static inline void mdss_mdp_cmd_clk_on(struct mdss_mdp_cmd_ctx *ctx)
 {
 	unsigned long flags;
-	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	mutex_lock(&ctx->clk_mtx);
 	if (!ctx->clk_enabled) {
 		ctx->clk_enabled = 1;
 		mdss_mdp_ctl_intf_event
 			(ctx->ctl, MDSS_EVENT_PANEL_CLK_CTRL, (void *)1);
 		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_ON, false);
-		mdss_mdp_hist_intr_setup(&mdata->hist_intr, MDSS_IRQ_RESUME);
 	}
 	spin_lock_irqsave(&ctx->clk_lock, flags);
 	if (!ctx->rdptr_enabled)
@@ -216,7 +214,6 @@ static inline void mdss_mdp_cmd_clk_on(struct mdss_mdp_cmd_ctx *ctx)
 static inline void mdss_mdp_cmd_clk_off(struct mdss_mdp_cmd_ctx *ctx)
 {
 	unsigned long flags;
-	struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 	int set_clk_off = 0;
 
 	mutex_lock(&ctx->clk_mtx);
@@ -227,7 +224,6 @@ static inline void mdss_mdp_cmd_clk_off(struct mdss_mdp_cmd_ctx *ctx)
 
 	if (ctx->clk_enabled && set_clk_off) {
 		ctx->clk_enabled = 0;
-		mdss_mdp_hist_intr_setup(&mdata->hist_intr, MDSS_IRQ_SUSPEND);
 		mdss_mdp_ctl_intf_event
 			(ctx->ctl, MDSS_EVENT_PANEL_CLK_CTRL, (void *)0);
 		mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
@@ -427,7 +423,11 @@ int mdss_mdp_cmd_reconfigure_splash_done(struct mdss_mdp_ctl *ctl, bool handoff)
 
 	pdata->panel_info.cont_splash_enabled = 0;
 
+	ret = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_CONT_SPLASH_FINISH,
+			NULL);
+
 	mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_PANEL_CLK_CTRL, (void *)0);
+	mdss_mdp_clk_ctrl(MDP_BLOCK_POWER_OFF, false);
 
 	return ret;
 }
@@ -590,11 +590,13 @@ int mdss_mdp_cmd_stop(struct mdss_mdp_ctl *ctl)
 	memset(ctx, 0, sizeof(*ctx));
 	ctl->priv_data = NULL;
 
-	ret = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_BLANK, NULL);
-	WARN(ret, "intf %d unblank error (%d)\n", ctl->intf_num, ret);
+	if (ctl->num == 0) {
+		ret = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_BLANK, NULL);
+		WARN(ret, "intf %d unblank error (%d)\n", ctl->intf_num, ret);
 
-	ret = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_PANEL_OFF, NULL);
-	WARN(ret, "intf %d unblank error (%d)\n", ctl->intf_num, ret);
+		ret = mdss_mdp_ctl_intf_event(ctl, MDSS_EVENT_PANEL_OFF, NULL);
+		WARN(ret, "intf %d unblank error (%d)\n", ctl->intf_num, ret);
+	}
 
 	ctl->stop_fnc = NULL;
 	ctl->display_fnc = NULL;

@@ -198,8 +198,10 @@ static unsigned long highmem_dirtyable_memory(unsigned long total)
 	 * accurate calculation but make sure that the total never
 	 * underflows.
 	 */
+	#ifdef CONFIG_CMA
 	if ((long)x < 0)
 		x = 0;
+	#endif
 	/*
 	 * Make sure that the number of highmem pages is never larger
 	 * than the number of the total dirtyable memory. This can only
@@ -222,8 +224,13 @@ unsigned long global_dirtyable_memory(void)
 {
 	unsigned long x;
 
+#ifdef CONFIG_CMA
 	x = global_page_state(NR_FREE_PAGES) + global_reclaimable_pages();
 	x -= min(x, dirty_balance_reserve);
+#else
+	x = global_page_state(NR_FREE_PAGES) + global_reclaimable_pages() -
+	    dirty_balance_reserve;
+#endif
 
 	if (!vm_highmem_is_dirtyable)
 		x -= highmem_dirtyable_memory(x);
@@ -290,12 +297,18 @@ static unsigned long zone_dirtyable_memory(struct zone *zone)
 	 * highmem zone can hold its share of dirty pages, so we don't
 	 * care about vm_highmem_is_dirtyable here.
 	 */
+#ifdef CONFIG_CMA
 	unsigned long nr_pages = zone_page_state(zone, NR_FREE_PAGES) +
 		zone_reclaimable_pages(zone);
 
 	/* don't allow this to underflow */
 	nr_pages -= min(nr_pages, zone->dirty_balance_reserve);
 	return nr_pages;
+#else
+	return zone_page_state(zone, NR_FREE_PAGES) +
+	       zone_reclaimable_pages(zone) -
+	       zone->dirty_balance_reserve;
+#endif
 }
 
 /**
@@ -1585,7 +1598,9 @@ void writeback_set_ratelimit(void)
 	unsigned long background_thresh;
 	unsigned long dirty_thresh;
 	global_dirty_limits(&background_thresh, &dirty_thresh);
+#ifdef CONFIG_CMA
 	global_dirty_limit = dirty_thresh;
+#endif
 	ratelimit_pages = dirty_thresh / (num_online_cpus() * 32);
 	if (ratelimit_pages < 16)
 		ratelimit_pages = 16;

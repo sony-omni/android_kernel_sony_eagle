@@ -41,7 +41,7 @@
 #include <linux/limits.h>
 
 /* [OPT] change circuit design after DVT2 phase, 20131008, Add Start */
-//#include <mach/cci_hw_id.h>
+#include <mach/cci_hw_id.h>
 /* [OPT] change circuit design after DVT2 phase, 20131008, Add End */
 
 static DEFINE_MUTEX(core_lock);
@@ -101,7 +101,7 @@ static void cyttsp4_initialize_core(struct cyttsp4_core *core,
 	core->dbg_msg_level = 0;
 	/**/
 	/* [OPT] change circuit design after DVT2 phase, 20131008, Add Start */
-	core->cci_hwid = 0;//get_cci_hw_id();
+	core->cci_hwid = get_cci_hw_id();
 	core->enable_vreg_l27 = 0;
 	/* [OPT] change circuit design after DVT2 phase, 20131008, Add End */
 }

@@ -13,9 +13,9 @@
 #include "power.h"
 
 static suspend_state_t autosleep_state;
-/* 20140218 */
+/* 20131001 */
 static suspend_state_t oldsleep_state;
-/* 20140218 */
+/* 20131001 */
 static struct workqueue_struct *autosleep_wq;
 /*
  * Note: it is only safe to mutex_lock(&autosleep_lock) if a wakeup_source
@@ -103,7 +103,7 @@ int pm_autosleep_set_state(suspend_state_t state)
 	autosleep_state = state;
 
 	__pm_relax(autosleep_ws);
-/* 20140218 */
+/* 20131001 */
 #ifdef ORG_VER
 	if (state > PM_SUSPEND_ON) {
 		pm_wakep_autosleep_enabled(true);

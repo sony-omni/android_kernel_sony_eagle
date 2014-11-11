@@ -555,11 +555,11 @@ static int gpio_keys_get_devtree_pdata(struct device *dev,
 	int i;
 	struct gpio_keys_button *buttons;
 	u32 reg;
-
+	
 	node = dev->of_node;
 	if (node == NULL)
 		return -ENODEV;
-
+	
 	memset(pdata, 0, sizeof *pdata);
 
 	pdata->rep = !!of_get_property(node, "autorepeat", NULL);
@@ -596,7 +596,6 @@ static int gpio_keys_get_devtree_pdata(struct device *dev,
 			goto out_fail;
 		}
 		buttons[i].code = reg;
-
 		buttons[i].desc = of_get_property(pp, "label", NULL);
 
 		if (of_property_read_u32(pp, "linux,input-type", &reg) == 0)

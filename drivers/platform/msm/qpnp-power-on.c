@@ -23,7 +23,10 @@
 #include <linux/input.h>
 #include <linux/log2.h>
 #include <linux/qpnp/power-on.h>
-#include <linux/wakelock.h>/* KevinA_Lin, 20140205 */
+#include <linux/wakelock.h>/* KevinA_Lin, 20130906 */
+/* 20130925 */
+#include <linux/gpio.h>
+/* 20130925 */
 
 /* Common PNP defines */
 #define QPNP_PON_REVISION2(base)		(base + 0x01)
@@ -37,7 +40,6 @@
 #define QPNP_PON_REASON1(base)			(base + 0x8)
 #define QPNP_PON_WARM_RESET_REASON1(base)	(base + 0xA)
 #define QPNP_PON_WARM_RESET_REASON2(base)	(base + 0xB)
-#define QPNP_POFF_REASON1(base)			(base + 0xC)
 #define QPNP_PON_KPDPWR_S1_TIMER(base)		(base + 0x40)
 #define QPNP_PON_KPDPWR_S2_TIMER(base)		(base + 0x41)
 #define QPNP_PON_KPDPWR_S2_CNTL(base)		(base + 0x42)
@@ -52,8 +54,6 @@
 #define QPNP_PON_KPDPWR_RESIN_S2_CNTL2(base)	(base + 0x4B)
 #define QPNP_PON_PS_HOLD_RST_CTL(base)		(base + 0x5A)
 #define QPNP_PON_PS_HOLD_RST_CTL2(base)		(base + 0x5B)
-#define QPNP_PON_WD_RST_S2_CTL(base)		(base + 0x56)
-#define QPNP_PON_WD_RST_S2_CTL2(base)		(base + 0x57)
 #define QPNP_PON_TRIGGER_EN(base)		(base + 0x80)
 #define QPNP_PON_S3_DBC_CTL(base)		(base + 0x75)
 
@@ -77,7 +77,6 @@
 #define QPNP_PON_RESIN_BARK_N_SET		BIT(4)
 #define QPNP_PON_KPDPWR_RESIN_BARK_N_SET	BIT(5)
 
-#define QPNP_PON_WD_EN			BIT(7)
 #define QPNP_PON_RESET_EN			BIT(7)
 #define QPNP_PON_POWER_OFF_MASK			0xF
 
@@ -88,9 +87,17 @@
 #define QPNP_PON_S3_DBC_DELAY_MASK		0x07
 #define QPNP_PON_RESET_TYPE_MAX			0xF
 #define PON_S1_COUNT_MAX			0xF
+#define PON_REASON_MAX				8
 
 #define QPNP_KEY_STATUS_DELAY			msecs_to_jiffies(250)
 #define QPNP_PON_REV_B				0x01
+
+/* 20130925 */
+#ifdef CCI_FORCE_RAMDUMP
+#define GPIO_VOLUME_DOWN   		106
+#define GPIO_CAM_CAPTURE   		107
+#endif
+/* 20130925 */
 
 enum pon_type {
 	PON_KPDPWR,
@@ -139,26 +146,6 @@ static const char * const qpnp_pon_reason[] = {
 	[5] = "Triggered from PON1 (secondary PMIC)",
 	[6] = "Triggered from CBL (external power supply)",
 	[7] = "Triggered from KPD (power key press)",
-};
-
-static const char * const qpnp_poff_reason[] = {
-	[0] = "Triggered from SOFT (Software)",
-	[1] = "Triggered from PS_HOLD (PS_HOLD/MSM controlled shutdown)",
-	[2] = "Triggered from PMIC_WD (PMIC watchdog)",
-	[3] = "Triggered from GP1 (Keypad_Reset1)",
-	[4] = "Triggered from GP2 (Keypad_Reset2)",
-	[5] = "Triggered from KPDPWR_AND_RESIN"
-		"(Simultaneous power key and reset line)",
-	[6] = "Triggered from RESIN_N (Reset line/Volume Down Key)",
-	[7] = "Triggered from KPDPWR_N (Long Power Key hold)",
-	[8] = "N/A",
-	[9] = "N/A",
-	[10] = "N/A",
-	[11] = "Triggered from CHARGER (Charger ENUM_TIMER, BOOT_DONE)",
-	[12] = "Triggered from TFT (Thermal Fault Tolerance)",
-	[13] = "Triggered from UVLO (Under Voltage Lock Out)",
-	[14] = "Triggered from OTST3 (Overtemp)",
-	[15] = "Triggered from STAGE3 (Stage 3 reset)",
 };
 
 static int
@@ -294,32 +281,6 @@ int qpnp_pon_is_warm_reset(void)
 EXPORT_SYMBOL(qpnp_pon_is_warm_reset);
 
 /**
- * qpnp_pon_wd_config - Disable the wd in a warm reset.
- * @enable: to enable or disable the PON watch dog
- *
- * Returns = 0 for operate successfully, < 0 for errors
- */
-int qpnp_pon_wd_config(bool enable)
-{
-	struct qpnp_pon *pon = sys_reset_dev;
-	int rc = 0;
-
-	if (!pon)
-		return -EPROBE_DEFER;
-
-	rc = qpnp_pon_masked_write(pon, QPNP_PON_WD_RST_S2_CTL2(pon->base),
-			QPNP_PON_WD_EN, enable ? QPNP_PON_WD_EN : 0);
-	if (rc)
-		dev_err(&pon->spmi->dev,
-				"Unable to write to addr=%x, rc(%d)\n",
-				QPNP_PON_WD_RST_S2_CTL2(pon->base), rc);
-
-	return rc;
-}
-EXPORT_SYMBOL(qpnp_pon_wd_config);
-
-
-/**
  * qpnp_pon_trigger_config - Configures (enable/disable) the PON trigger source
  * @pon_src: PON source to be configured
  * @enable: to enable or disable the PON trigger
@@ -365,13 +326,51 @@ qpnp_get_cfg(struct qpnp_pon *pon, u32 pon_type)
 	return NULL;
 }
 
-/* KevinA_Lin, 20140205 */
+/* 20130925 */
 #ifdef CCI_FORCE_RAMDUMP
-#define CCI_FORCE_RAMDUMP_TIMEOUT 1000
-#define CCI_FORCE_RAMDUMP_CHECK_NUM 30
+static int is_gpio_key_pressed(int gpio) {
+
+	int status = 0;
+
+	status = gpio_get_value(gpio); 
+	if (!status) {
+		pr_info("%s: GPIO(%d) is pressed\n", __func__, gpio);			
+	} else {
+		pr_info("%s: GPIO(%d) is released\n", __func__, gpio);
+	}
+	return !status;
+}
+
+static void qpnp_checkkey_to_trigger_ramdump(u8 pon_rt_val) 
+{	
+	int resin_pressed=0, volume_down_pressed=0, camera_capture_pressed=0;
+
+	if (!pon_rt_val) {
+		resin_pressed = 0;
+		pr_info("%s: resin is released\n", __func__);
+	} else {
+		resin_pressed = 1;
+		pr_info("%s: resin is pressed\n", __func__);
+
+		volume_down_pressed = is_gpio_key_pressed(GPIO_VOLUME_DOWN);
+		camera_capture_pressed = is_gpio_key_pressed(GPIO_CAM_CAPTURE);
+		
+		if (resin_pressed && volume_down_pressed && camera_capture_pressed) {
+		    	pr_info("%s: Using combination key (up+down+capture) to force panic!!!\n", __func__);
+			panic("kernel panic cause by resin+volume down+camera capture!!!");
+		}
+	}
+}
+#endif
+/* 20130925 */
+
+/* KevinA_Lin, 20131226 */
+#ifdef CCI_FORCE_RAMDUMP
+#define CCI_FORCE_RAMDUMP_TIMEOUT 5000
+#define CCI_FORCE_RAMDUMP_CHECK_NUM 6
 static struct timer_list hwkey_timer;
 struct qpnp_pon *pon_ptr;
-static int hwkey_timer_check = 0;
+static int hwkey_timer_check;
 static struct wake_lock force_ramdump_wake_lock;
 static void
 qpnp_pon_force_ramdump_timer(unsigned long unused)
@@ -394,9 +393,7 @@ qpnp_pon_force_ramdump_timer(unsigned long unused)
 		//keep pressing power key
 		} else {
 			hwkey_timer_check ++;
-			if(!(hwkey_timer_check%5)){
-					pr_info("%s():keep pressing power key, hwkey_timer_check=%d\n", __func__, hwkey_timer_check);
-				}
+			pr_info("%s():keep pressing power key, hwkey_timer_check=%d\n", __func__, hwkey_timer_check);
 			if(hwkey_timer_check == CCI_FORCE_RAMDUMP_CHECK_NUM) {
 				pr_info("%s: long press pwkey to  force panic!!!\n",__func__);
 				panic("kernel panic cause by long press pwkey!!!");
@@ -427,7 +424,7 @@ qpnp_pon_force_ramdump(u8 pon_rt_val)
 	}
 }
 #endif
-/* KevinA_Lin, 20140205 */
+/* KevinA_Lin, 20131226 */
 
 static int
 qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
@@ -471,13 +468,20 @@ qpnp_pon_input_dispatch(struct qpnp_pon *pon, u32 pon_type)
 
 	input_report_key(pon->pon_input, cfg->key_code,
 					(pon_rt_sts & pon_rt_bit));
-	/* KevinA_Lin, 20140205 */
+	/* KevinA_Lin, 20131226 */
 	#ifdef CCI_FORCE_RAMDUMP
 	if (cfg->pon_type == PON_KPDPWR)
-		qpnp_pon_force_ramdump(pon_rt_sts & pon_rt_bit);
+		qpnp_pon_force_ramdump(pon_rt_sts & pon_rt_bit);/* KevinA_Lin, 20130906 */
 	#endif
-	/* KevinA_Lin, 20140205 */
+	/* KevinA_Lin, 20131226 */
 
+	/* 20130925 */
+	#ifdef CCI_FORCE_RAMDUMP
+	if (cfg->pon_type == PON_RESIN)
+		qpnp_checkkey_to_trigger_ramdump(pon_rt_sts & pon_rt_bit);
+	#endif
+	/* 20130925 */
+	
 	input_sync(pon->pon_input);
 
 	return 0;
@@ -826,8 +830,6 @@ qpnp_pon_config_input(struct qpnp_pon *pon,  struct qpnp_pon_config *cfg)
 		pon->pon_input->phys = "qpnp_pon/input0";
 	}
 
-	/* don't send dummy release event when system resumes */
-	__set_bit(INPUT_PROP_NO_DUMMY_RELEASE, pon->pon_input->propbit);
 	input_set_capability(pon->pon_input, EV_KEY, cfg->key_code);
 
 	return 0;
@@ -1113,8 +1115,7 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 	struct device_node *itr = NULL;
 	u32 delay = 0, s3_debounce = 0;
 	int rc, sys_reset, index;
-	u8 pon_sts = 0, buf[2];
-	u16 poff_sts = 0;
+	u8 pon_sts = 0;
 
 	pon = devm_kzalloc(&spmi->dev, sizeof(struct qpnp_pon),
 							GFP_KERNEL);
@@ -1163,37 +1164,15 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 		return rc;
 	}
 
-	index = ffs(pon_sts) - 1;
-	cold_boot = !qpnp_pon_is_warm_reset();
-	if (index >= ARRAY_SIZE(qpnp_pon_reason) || index < 0)
-		dev_info(&pon->spmi->dev,
-			"PMIC@SID%d Power-on reason: Unknown and '%s' boot\n",
-			pon->spmi->sid, cold_boot ? "cold" : "warm");
-	else
-		dev_info(&pon->spmi->dev,
-			"PMIC@SID%d Power-on reason: %s and '%s' boot\n",
-			pon->spmi->sid, qpnp_pon_reason[index],
-			cold_boot ? "cold" : "warm");
+	boot_reason = ffs(pon_sts);
+	index = ffs(pon_sts);
+	if ((index > PON_REASON_MAX) || (index < 0))
+		index = 0;
 
-	/* POFF reason */
-	rc = spmi_ext_register_readl(pon->spmi->ctrl, pon->spmi->sid,
-				QPNP_POFF_REASON1(pon->base),
-				buf, 2);
-	if (rc) {
-		dev_err(&pon->spmi->dev, "Unable to read POFF_RESASON regs\n");
-		return rc;
-	}
-	poff_sts = buf[0] | (buf[1] << 8);
-	index = ffs(poff_sts) - 1;
-	if (index >= ARRAY_SIZE(qpnp_poff_reason) || index < 0)
-		dev_info(&pon->spmi->dev,
-				"PMIC@SID%d: Unknown power-off reason\n",
-				pon->spmi->sid);
-	else
-		dev_info(&pon->spmi->dev,
-				"PMIC@SID%d: Power-off reason: %s\n",
-				pon->spmi->sid,
-				qpnp_poff_reason[index]);
+	cold_boot = !qpnp_pon_is_warm_reset();
+	pr_info("PMIC@SID%d Power-on reason: %s and '%s' boot\n",
+		pon->spmi->sid, index ? qpnp_pon_reason[index - 1] :
+		"Unknown", cold_boot ? "cold" : "warm");
 
 	//quiet reboot
 	if( index - 1 == 1 ) //"Triggered from SMPL (sudden momentary power loss)"
@@ -1250,7 +1229,7 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 
 	INIT_DELAYED_WORK(&pon->bark_work, bark_work_func);
 
-	/* KevinA_Lin, 20140205 */
+	/* KevinA_Lin, 20131226 */
 	#ifdef CCI_FORCE_RAMDUMP
 	wake_lock_init(&force_ramdump_wake_lock, WAKE_LOCK_SUSPEND,
 			"qpnp-force-ramedump");
@@ -1258,7 +1237,7 @@ static int __devinit qpnp_pon_probe(struct spmi_device *spmi)
 			qpnp_pon_force_ramdump_timer, (unsigned long)0);
 	pon_ptr = pon;
 	#endif
-	/* KevinA_Lin, 20140205 */
+	/* KevinA_Lin, 20131226 */
 
 	/* register the PON configurations */
 	rc = qpnp_pon_config_init(pon);
@@ -1284,8 +1263,8 @@ static int qpnp_pon_remove(struct spmi_device *spmi)
 }
 
 static struct of_device_id spmi_match_table[] = {
-	{ .compatible = "qcom,qpnp-power-on", },
-	{}
+	{	.compatible = "qcom,qpnp-power-on",
+	}
 };
 
 static struct spmi_driver qpnp_pon_driver = {

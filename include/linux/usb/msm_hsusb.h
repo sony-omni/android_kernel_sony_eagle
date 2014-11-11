@@ -2,7 +2,7 @@
  *
  * Copyright (C) 2008 Google, Inc.
  * Author: Brian Swetland <swetland@google.com>
- * Copyright (c) 2009-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2013, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -345,11 +345,8 @@ struct msm_otg_platform_data {
  * @host_bus_suspend: indicates host bus suspend or not.
  * @chg_check_timer: The timer used to implement the workaround to detect
  *               very slow plug in of wall charger.
+ * @pm_done: Indicates whether USB is PM resumed
  * @ui_enabled: USB Intterupt is enabled or disabled.
- * @pm_done: It is used to increment the pm counter using pm_runtime_get_sync.
-	     This handles the race case when PM resume thread returns before
-	     the charger detection starts. When USB is disconnected pm_done
-	     is set to true.
  */
 struct msm_otg {
 	struct usb_phy phy;
@@ -465,9 +462,8 @@ struct msm_otg {
 	bool ext_chg_opened;
 	bool ext_chg_active;
 	struct completion ext_chg_wait;
+        bool pm_done;
 	int ui_enabled;
-	bool pm_done;
-	struct qpnp_vadc_chip	*vadc_dev;
 };
 
 struct ci13xxx_platform_data {
@@ -488,6 +484,8 @@ struct ci13xxx_platform_data {
  * @phy_sof_workaround: Enable ALL PHY SOF bug related workarounds for
 		SUSPEND, RESET and RESUME.
  * @phy_susp_sof_workaround: Enable PHY SOF workaround only for SUSPEND.
+ * @dis_internal_clk_gating: If set, internal clock gating in controller
+ *		is disabled.
  *
  */
 struct msm_hsic_host_platform_data {
@@ -495,6 +493,7 @@ struct msm_hsic_host_platform_data {
 	unsigned data;
 	bool ignore_cal_pad_config;
 	bool phy_sof_workaround;
+	bool dis_internal_clk_gating;
 	bool phy_susp_sof_workaround;
 	u32 reset_delay;
 	int strobe_pad_offset;

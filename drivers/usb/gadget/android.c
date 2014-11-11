@@ -1776,8 +1776,8 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	int err;
 	int i;
 	const char *name[3];
-#ifdef F_CDROM 
-	int nluns; 
+#ifdef F_CDROM
+	int nluns;
 #endif
 	config = kzalloc(sizeof(struct mass_storage_function_config),
 								GFP_KERNEL);
@@ -1833,7 +1833,6 @@ static int mass_storage_function_init(struct android_usb_function *f,
 #else
 	config->fsg.luns[0].removable = 1;
 #endif
-
 	common = fsg_common_init(NULL, cdev, &config->fsg);
 	if (IS_ERR(common)) {
 		kfree(config);

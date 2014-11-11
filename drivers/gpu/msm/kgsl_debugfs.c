@@ -30,9 +30,9 @@ static int pm_dump_set(void *data, u64 val)
 	struct kgsl_device *device = data;
 
 	if (val) {
-		kgsl_mutex_lock(&device->mutex, &device->mutex_owner);
+		mutex_lock(&device->mutex);
 		kgsl_postmortem_dump(device, 1);
-		kgsl_mutex_unlock(&device->mutex, &device->mutex_owner);
+		mutex_unlock(&device->mutex);
 	}
 
 	return 0;
@@ -122,6 +122,7 @@ KGSL_DEBUGFS_LOG(cmd_log);
 KGSL_DEBUGFS_LOG(ctxt_log);
 KGSL_DEBUGFS_LOG(mem_log);
 KGSL_DEBUGFS_LOG(pwr_log);
+KGSL_DEBUGFS_LOG(ft_log);
 
 static int memfree_hist_print(struct seq_file *s, void *unused)
 {
@@ -190,6 +191,8 @@ void kgsl_device_debugfs_init(struct kgsl_device *device)
 				&pwr_log_fops);
 	debugfs_create_file("memfree_history", 0444, device->d_debugfs, device,
 				&memfree_hist_fops);
+	debugfs_create_file("log_level_ft", 0644, device->d_debugfs, device,
+				&ft_log_fops);
 
 	/* Create postmortem dump control files */
 

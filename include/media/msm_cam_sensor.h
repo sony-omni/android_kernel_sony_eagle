@@ -484,7 +484,6 @@ struct msm_actuator_move_params_t {
 	int8_t sign_dir;
 	int16_t dest_step_pos;
 	int32_t num_steps;
-	uint16_t curr_lens_pos;
 	struct damping_params_t *ringing_params;
 };
 
@@ -583,8 +582,7 @@ enum msm_camera_led_config_t {
 
 struct msm_camera_led_cfg_t {
 	enum msm_camera_led_config_t cfgtype;
-	uint32_t torch_current;
-	uint32_t flash_current[2];
+	uint32_t led_current;
 };
 
 #define VIDIOC_MSM_SENSOR_CFG \
