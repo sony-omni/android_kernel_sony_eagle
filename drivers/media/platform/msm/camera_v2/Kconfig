@@ -128,6 +128,21 @@ config IMX134
 		HFR @60fps and @120fps
 		Video HDR support.
 
+config IMX188
+	bool "Sensor imx188 (Sony 1.07MP)"
+	depends on MSMB_CAMERA
+	---help---
+		Sony 1.07MP Bayer Sensor, supports 1 mipi lane,
+		preview and snapshot config at 1280*720 at 30 fps,
+		This sensor driver does not support auto focus.
+
+config SONY_CAM_QCAMERA
+	bool "SONY camera"
+	depends on MSMB_CAMERA
+	---help---
+		Enable SONY camera patches.
+		This macro is used for SONY patches.
+
 config OV2720
 	bool "Sensor OV2720 (BAYER 2M)"
 	depends on MSMB_CAMERA
