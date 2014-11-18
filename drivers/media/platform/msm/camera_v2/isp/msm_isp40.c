@@ -36,10 +36,17 @@
 #define VFE40_8x26_VERSION 0x20000013
 #define VFE40_8x26V2_VERSION 0x20010014
 
-
 /* STATS_SIZE (BE + BG + BF+ RS + CS + IHIST + BHIST ) = 392 */
 #define VFE40_STATS_SIZE 392
-
+#ifdef CONFIG_MACH_SONY_EAGLE
+#define VFE40_BURST_LEN 3
+#define VFE40_STATS_BURST_LEN 2
+#else
+#define VFE40_BURST_LEN 1
+#define VFE40_STATS_BURST_LEN 1
+#endif
+#define VFE40_UB_SIZE 1536
+#define VFE40_EQUAL_SLICE_UB 228
 #define VFE40_WM_BASE(idx) (0x6C + 0x24 * idx)
 #define VFE40_RDI_BASE(idx) (0x2E8 + 0x4 * idx)
 #define VFE40_XBAR_BASE(idx) (0x58 + 0x4 * (idx / 2))
@@ -940,7 +947,13 @@ static void msm_vfe40_update_camif_state(struct vfe_device *vfe_dev,
 	} else if (update_state == DISABLE_CAMIF_IMMEDIATELY) {
 		msm_camera_io_w_mb(0x6, vfe_dev->vfe_base + 0x2F4);
 		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 0;
+#ifdef CONFIG_MACH_SONY_EAGLE
+	} else if (update_state == DISABLE_CAMIF_IMMEDIATELY_VFE_RECOVER) {
+		/*disable image data capture immediately*/
+		msm_camera_io_w_mb(0x2, vfe_dev->vfe_base + 0x2F4);
+		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 0;
 	}
+#endif
 }
 
 static void msm_vfe40_cfg_rdi_reg(
@@ -1108,7 +1121,11 @@ static void msm_vfe40_axi_clear_wm_xbar_reg(
 		vfe_dev->vfe_base + VFE40_XBAR_BASE(wm));
 }
 
+#ifndef CONFIG_MACH_SONY_EAGLE
 #define MSM_ISP40_TOTAL_WM_UB 819
+#else
+#define MSM_ISP40_TOTAL_WM_UB 1140
+#endif
 
 static void msm_vfe40_cfg_axi_ub_equal_default(
 	struct vfe_device *vfe_dev)
