@@ -63,6 +63,7 @@ struct msm_sensor_ctrl_t {
 	enum cci_i2c_master_t cci_i2c_master;
 
 	struct msm_camera_i2c_client *sensor_i2c_client;
+	struct device *dev;
 	struct v4l2_subdev_info *sensor_v4l2_subdev_info;
 	uint8_t sensor_v4l2_subdev_info_size;
 	struct v4l2_subdev_ops *sensor_v4l2_subdev_ops;

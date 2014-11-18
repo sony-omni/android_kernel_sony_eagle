@@ -22,6 +22,11 @@
 #include "msm_camera_io_util.h"
 #include "msm_camera_dt_util.h"
 
+
+#ifdef CONFIG_MACH_SONY_EAGLE
+extern int cci_camera_source;
+#endif
+
 struct msm_eeprom_ctrl_t;
 
 #define DEFINE_MSM_MUTEX(mutexname) \
@@ -42,6 +47,7 @@ struct msm_eeprom_ctrl_t {
 	struct msm_camera_i2c_client i2c_client;
 	struct msm_eeprom_memory_block_t cal_data;
 	uint8_t is_supported;
+	uint8_t *memory_data;
 	struct msm_eeprom_board_info *eboard_info;
 	uint32_t subdev_id;
 };
