@@ -1990,27 +1990,26 @@ qpnp_chg_dc_dcin_valid_irq_handler(int irq, void *_chip)
 	return IRQ_HANDLED;
 }
 
-/*[Bug464] S Jonny_Chan */
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 #define CHGR_CHG_FAILED_BIT	BIT(7)
 #endif
-/*[Bug464] E Jonny_Chan */
 static irqreturn_t
 qpnp_chg_chgr_chg_failed_irq_handler(int irq, void *_chip)
 {
 	struct qpnp_chg_chip *chip = _chip;
 	int rc;
+#ifdef CONFIG_SONY_EAGLE
 	u8 reg = 0; /*[Bug464] Jonny_Chan */
-
+#endif
 	pr_debug("chg_failed triggered\n");
 
 	/*[Bug464] S Jonny_Chan */
-	#ifdef ORG_VER	
+#ifndef CONFIG_SONY_EAGLE
 	rc = qpnp_chg_masked_write(chip,
 		chip->chgr_base + CHGR_CHG_FAILED,
 		CHGR_CHG_FAILED_BIT,
 		CHGR_CHG_FAILED_BIT, 1);
-	#else
+#else
 	rc = qpnp_chg_read(chip, &reg,
 	chip->chgr_base + CHGR_TCHG_MAX, 1);
 
@@ -2039,8 +2038,7 @@ qpnp_chg_chgr_chg_failed_irq_handler(int irq, void *_chip)
 		}
 	}
 	printk("count is %d, usb type is %d\n", chip->tchg_count, chip->prev_chg_type);
-	#endif
-	/*[Bug464] E Jonny_Chan */
+#endif
 	if (rc)
 		pr_err("Failed to write chg_fail clear bit!\n");
 
@@ -2376,12 +2374,9 @@ static enum power_supply_property msm_batt_power_props[] = {
 	POWER_SUPPLY_PROP_SYSTEM_TEMP_LEVEL,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_OCV,
-// modified by YF-begin  
-#if defined(ORG_VER)
-#else  
+#ifdef CONFIG_SONY_EAGLE
 	POWER_SUPPLY_PROP_USB_PRESENT,  
 #endif	
-// modified by YF-end  
 };
 
 static char *pm_power_supplied_to[] = {
@@ -2392,13 +2387,11 @@ static char *pm_batt_supplied_to[] = {
 	"bms",
 };
 
-/* [CCI] S- Bug#919 Jonny_Chan*/
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 static int charger_monitor;
 #else
 static int charger_monitor=1;
 #endif
-/* [CCI] E- Bug#919 Jonny_Chan*/
 
 module_param(charger_monitor, int, 0644);
 
@@ -2870,8 +2863,9 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 {
 	struct qpnp_chg_chip *chip = container_of(psy, struct qpnp_chg_chip,
 								batt_psy);
+#ifdef CONFIG_SONY_EAGLE
 	int fake_val = -1; /* [CCI] Bug#713 Jonny_Chan*/
-
+#endif
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
 		val->intval = get_prop_batt_status(chip);
@@ -2901,18 +2895,16 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 		val->intval = chip->insertion_ocv_uv;
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
-		/* [CCI] S- Bug#713 Jonny_Chan*/
-		#ifdef  ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 		val->intval = get_prop_batt_temp(chip);
-		#else
+#else
 		fake_val = batt_func_test_val_read(BATT_FAKE_TEMPERATURE);
 		if ( fake_val >= 0) {
 			val->intval = fake_val;
 		} else {
 			val->intval = get_prop_batt_temp(chip);
 		}
-		#endif
-		/* [CCI] E- Bug#713 Jonny_Chan*/
+#endif
 		break;
 	case POWER_SUPPLY_PROP_COOL_TEMP:
 		val->intval = chip->cool_bat_decidegc;
@@ -2921,18 +2913,16 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 		val->intval = chip->warm_bat_decidegc;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		/* [CCI] S- Bug#713 Jonny_Chan*/
-		#ifdef  ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 		val->intval = get_prop_capacity(chip);
-		#else
+#else
 		fake_val = batt_func_test_val_read(BATT_FAKE_CAPACITY);
 		if ( fake_val >= 0) {
 			val->intval = fake_val;
 		} else {
 		val->intval = get_prop_capacity(chip);
 		}
-		#endif
-		/* [CCI] E- Bug#713 Jonny_Chan*/
+#endif
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		val->intval = get_prop_current_now(chip);
@@ -2970,14 +2960,11 @@ qpnp_batt_power_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ONLINE:
 		val->intval = get_prop_online(chip);
 		break;
-// modified by YF-begin  
-#if defined(ORG_VER)  
-#else  
+#ifdef CONFIG_SONY_EAGLE
 	case POWER_SUPPLY_PROP_USB_PRESENT:  
 		val->intval = qpnp_chg_is_usb_chg_plugged_in(chip);  
 		break;  
 #endif	
-// modified by YF-end  
 	default:
 		return -EINVAL;
 	}
@@ -3061,13 +3048,11 @@ qpnp_chg_ibatterm_set(struct qpnp_chg_chip *chip, int term_current)
 			QPNP_CHG_ITERM_MASK, temp, 1);
 }
 
-/*[Bug1105] S Jonny_Chan */
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 #define QPNP_CHG_IBATMAX_MIN	50
 #else
 #define QPNP_CHG_IBATMAX_MIN	0
 #endif
-/*[Bug1105] S Jonny_Chan */
 #define QPNP_CHG_IBATMAX_MAX	3250
 static int
 qpnp_chg_ibatmax_set(struct qpnp_chg_chip *chip, int chg_current)
@@ -3103,13 +3088,11 @@ qpnp_chg_ibatmax_get(struct qpnp_chg_chip *chip, int *chg_current)
 }
 
 #define QPNP_CHG_TCHG_EN_MASK	0x80
-/*[Bug464] S Jonny_Chan */
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 #define QPNP_CHG_TCHG_MASK	0x7F
 #define QPNP_CHG_TCHG_MIN	4
 #define QPNP_CHG_TCHG_MAX	512
 #endif
-/*[Bug464] E Jonny_Chan */
 #define QPNP_CHG_TCHG_STEP	4
 static int qpnp_chg_tchg_max_set(struct qpnp_chg_chip *chip, int minutes)
 {
@@ -6117,13 +6100,11 @@ static int qpnp_chg_suspend(struct device *dev)
 		rc = qpnp_chg_masked_write(chip,
 			chip->bat_if_base + BAT_IF_VREF_BAT_THM_CTRL,
 			VREF_BATT_THERM_FORCE_ON,
-/* [CCI] S- Bug#478 Jonny_Chan*/
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 			VREF_BAT_THM_ENABLED_FSM, 1);
 #else
 			VREF_BATT_THERM_FORCE_ON, 1);
 #endif
-/* [CCI] E- Bug#478 Jonny_Chan*/
 		if (rc)
 			pr_debug("failed to set FSM VREF_BAT_THM rc=%d\n", rc);
 	}

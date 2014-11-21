@@ -428,15 +428,14 @@ static int lock_output_data(struct qpnp_bms_chip *chip)
 		return rc;
 	}
 	/*20140918 handle spmi failures in reading cc*/
-	#ifdef ORG_VER
-	#else
+#ifdef CONFIG_SONY_EAGLE
 	/*
 	* Sleep for at least 60 microseconds here to make sure there has
 	* been at least two cycles of the sleep clock so that the registers
 	* are correctly locked.
 	*/
 	usleep_range(60, 2000);
-	#endif
+#endif
 	return 0;
 }
 
@@ -917,8 +916,7 @@ static int get_simultaneous_batt_v_and_i(struct qpnp_bms_chip *chip,
 	return 0;
 }
 
-/*[CCI] S- Bug#2723 SR patches Jonny_Chan*/
-#ifndef ORG_VER
+#ifdef CONFIG_SONY_EAGLE
 static int get_rbatt(struct qpnp_bms_chip *chip,
 					int soc_rbatt_mohm, int batt_temp)
 {
@@ -939,10 +937,8 @@ static int get_rbatt(struct qpnp_bms_chip *chip,
  	return rbatt_mohm;
 }
 #endif
-/*[CCI] E- Bug#2723 SR patches Jonny_Chan*/
 
-/*[CCI] S- Bug#2723 SR patches Jonny_Chan*/
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 static int estimate_ocv(struct qpnp_bms_chip *chip)
 {
 	int rbatt_mohm, scalefactor;
@@ -1002,7 +998,6 @@ static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp)
 	
 }
 #endif
-/*[CCI] E- Bug#2723 SR patches Jonny_Chan*/
 
 #define MIN_IAVG_MA 250
 static void reset_for_new_battery(struct qpnp_bms_chip *chip, int batt_temp)
@@ -1108,11 +1103,12 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 	if (rc) {
 		pr_err("Error reading ocv: rc = %d\n", rc);
 		goto param_err;
+		goto param_err;
+#endif
 	}
 
 	rc = read_cc_raw(chip, &raw->cc, CC);
-/*20140918 handle spmi failures in reading cc*/
-#ifdef ORG_VER
+#ifdef CONFIG_SONY_EAGLE
 	rc = read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
 #else
 	rc |= read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
@@ -1121,6 +1117,7 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 	if (rc) {
 		pr_err("Failed to read raw cc data, rc = %d\n", rc);
 		goto param_err;
+#endif
 	}
 
 	unlock_output_data(chip);
@@ -1302,8 +1299,7 @@ static int calculate_cc(struct qpnp_bms_chip *chip, int64_t cc,
 	}
 }
 
-/*[CCI] S- Bug#2723 SR patches Jonny_Chan*/
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 static int get_rbatt(struct qpnp_bms_chip *chip,
 					int soc_rbatt_mohm, int batt_temp)
 {
@@ -2295,12 +2291,15 @@ static int clamp_soc_based_on_voltage(struct qpnp_bms_chip *chip, int soc)
 		pr_err("adc vbat failed err = %d\n", rc);
 		return soc;
 	}
-
+#ifndef CONFIG_SONY_EAGLE
+	if (soc == 0 && vbat_uv > chip->v_cutoff_uv) {
+#else
 	/* only clamp when discharging */
 	if (is_battery_charging(chip))
 		return soc;
 
 	if (soc <= 0 && vbat_uv > chip->v_cutoff_uv) {
+#endif
 		pr_debug("clamping soc to 1, vbat (%d) > cutoff (%d)\n",
 						vbat_uv, chip->v_cutoff_uv);
 		return 1;
@@ -2513,6 +2512,10 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 	}
 	mutex_unlock(&chip->soc_invalidation_mutex);
 
+#ifndef CONFIG_SONY_EAGLE
+	pr_debug("SOC before adjustment = %d\n", soc);
+	new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
+#else
 	if (chip->first_time_calc_soc && !chip->shutdown_soc_invalid) {
 		pr_debug("Skip adjustment when shutdown SOC has been forced\n");
 		new_calculated_soc = soc;
@@ -2520,6 +2523,7 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 		pr_debug("SOC before adjustment = %d\n", soc);
 		new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
 	}
+#endif
 
 	/* always clamp soc due to BMS hw/sw immaturities */
 	new_calculated_soc = clamp_soc_based_on_voltage(chip,
@@ -2634,17 +2638,16 @@ static int recalculate_raw_soc(struct qpnp_bms_chip *chip)
 			batt_temp = (int)result.physical;
 
 			mutex_lock(&chip->last_ocv_uv_mutex);
-			/*20140918 handle spmi failures in reading cc*/
-			#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 			read_soc_params_raw(chip, &raw, batt_temp);
-			#else
+#else
 			rc = read_soc_params_raw(chip, &raw, batt_temp);
 			if (rc) {
 				pr_err("Unable to read params, rc: %d\n", rc);
 				soc = 0;
 				goto done;
 			}
-			#endif
+#endif
 			calculate_soc_params(chip, &raw, &params, batt_temp);
 			if (!is_battery_present(chip)) {
 				pr_debug("battery gone\n");
@@ -2659,8 +2662,7 @@ static int recalculate_raw_soc(struct qpnp_bms_chip *chip)
 							&params, batt_temp);
 			}
 /*20140918 handle spmi failures in reading cc*/
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 done:
 #endif
 			mutex_unlock(&chip->last_ocv_uv_mutex);
@@ -2701,11 +2703,10 @@ static int recalculate_soc(struct qpnp_bms_chip *chip)
 			batt_temp = (int)result.physical;
 
 			mutex_lock(&chip->last_ocv_uv_mutex);
-			/*20140918 handle spmi failures in reading cc*/
-			#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 			read_soc_params_raw(chip, &raw, batt_temp);
 			soc = calculate_state_of_charge(chip, &raw, batt_temp);
-			#else
+#else
 			rc = read_soc_params_raw(chip, &raw, batt_temp);
 			if (rc) {
 				pr_err("Unable to read params, rc: %d\n", rc);
@@ -2714,7 +2715,7 @@ static int recalculate_soc(struct qpnp_bms_chip *chip)
 				soc = calculate_state_of_charge(chip,
 						&raw, batt_temp);
 			}	
-			#endif
+#endif
 			mutex_unlock(&chip->last_ocv_uv_mutex);
 		}
 	}

@@ -45,7 +45,7 @@
    their framework which is 0.1DegC. True resolution of 0.1DegC
    will result in the below table size to increase by 10 times */
 /* [CCI] S- Bug# Jonny_Chan*/   
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{-300,	1642},
 	{-200,	1544},
@@ -132,7 +132,6 @@ static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{790,	203}
 };
 #else
-//26.7K
 static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{-200,   1289},
 	{0,    1167},
@@ -153,7 +152,6 @@ static const struct qpnp_vadc_map_pt adcmap_btm_threshold[] = {
 	{1000,   461}
 };
 #endif
-/* [CCI] E- Bug# Jonny_Chan*/
 
 static const struct qpnp_vadc_map_pt adcmap_qrd_btm_threshold[] = {
 	{-200,	1540},
@@ -645,12 +643,9 @@ int32_t qpnp_adc_scale_batt_therm(struct qpnp_vadc_chip *chip,
 
 	bat_voltage = qpnp_adc_scale_ratiometric_calib(adc_code,
 			adc_properties, chan_properties);
-/* [CCI] S- Bug# Jonny_Chan*/ 
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 	adc_chan_result->measurement = bat_voltage;
 #endif
-/* [CCI] E- Bug# Jonny_Chan*/ 
 
 	return qpnp_adc_map_temp_voltage(
 			adcmap_btm_threshold,

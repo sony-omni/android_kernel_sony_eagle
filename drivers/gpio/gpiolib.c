@@ -15,9 +15,7 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/gpio.h>
 
-/* KevinA_Lin 20140218 */
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 #include "linux/proc_fs.h"
 #include <linux/suspend_info.h>
 #include <linux/syscore_ops.h>
@@ -1898,9 +1896,7 @@ subsys_initcall(gpiolib_debugfs_init);
 
 #endif	/* DEBUG_FS */
 
-/* KevinA_Lin 20140218 */
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 #define GPIO_CONFIG(gpio)         (MSM_TLMM_BASE + 0x1000 + (0x10 * (gpio)))
 #define GPIO_IN_OUT(gpio)         (MSM_TLMM_BASE + 0x1004 + (0x10 * (gpio)))
 

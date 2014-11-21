@@ -597,17 +597,16 @@ static void input_dev_release_keys(struct input_dev *dev)
 
 	if (is_event_supported(EV_KEY, dev->evbit, EV_MAX)) {
 		for (code = 0; code <= KEY_MAX; code++) {
-			/*KevinA_Lin, 20140210*/
-			#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 			if (is_event_supported(code, dev->keybit, KEY_MAX) &&
 			    __test_and_clear_bit(code, dev->key)) {
 				input_pass_event(dev, EV_KEY, code, 0);
-			#else
+#else
 			/*Bypass camrea snapshot and focus event*/
 			if (is_event_supported(code, dev->keybit, KEY_MAX) &&
 			    __test_and_clear_bit(code, dev->key)&& (code!=528 && code!=766)) {
 				input_pass_event(dev, EV_KEY, code, 0);
-			#endif
+#endif
 			/*KevinA_Lin, 20140210*/
 			}
 		}

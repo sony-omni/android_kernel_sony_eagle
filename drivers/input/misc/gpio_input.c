@@ -153,8 +153,7 @@ static enum hrtimer_restart gpio_event_input_timer_func(struct hrtimer *timer)
 			pr_info("gpio_keys_scan_keys: key %x-%x, %d (%d) "
 				"changed to %d\n", ds->info->type,
 				key_entry->code, i, key_entry->gpio, pressed);
-//S:LO
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 		input_event(ds->input_devs->dev[key_entry->dev], ds->info->type,
 			    key_entry->code, pressed);
 #else
@@ -266,8 +265,7 @@ static int gpio_event_input_request_irqs(struct gpio_input_state *ds)
 		err = irq = gpio_to_irq(ds->info->keymap[i].gpio);
 		if (err < 0)
 			goto err_gpio_get_irq_num_failed;
-//S:LO
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 		err = request_irq(irq, gpio_event_input_irq_handler,
 				  req_flags, "gpio_keys", &ds->key_state[i]);
 		if (err) {
@@ -464,8 +462,7 @@ int gpio_event_input_func(struct gpio_event_input_devs *input_devs,
 		}
 
 		for (i = 0; i < di->keymap_size; i++) {
-//S:LO
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 			ret = gpio_request(di->keymap[i].gpio, "gpio_kp_in");
 			if (ret) {
 				pr_err("gpio_event_input_func: gpio_request "

@@ -37,12 +37,9 @@
 
 #include "dummy.h"
 
-/* KevinA_Lin 20140218 */
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 #include <linux/suspend_info.h>
 #endif
-/* KevinA_Lin 20140218 */
 
 #define rdev_crit(rdev, fmt, ...)					\
 	pr_crit("%s: " fmt, rdev_get_name(rdev), ##__VA_ARGS__)

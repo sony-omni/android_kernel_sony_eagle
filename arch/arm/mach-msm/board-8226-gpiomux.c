@@ -190,9 +190,8 @@ static struct gpiomux_setting synaptics_reset_sus_cfg = {
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
-/*KevinA_Lin, 20140120*/
-#ifdef ORG_VER
-#else
+
+#ifdef CONFIG_SONY_EAGLE
 static struct gpiomux_setting gpio_volume_keys_active = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
@@ -204,7 +203,7 @@ static struct gpiomux_setting gpio_volume_keys_suspend = {
 	.pull = GPIOMUX_PULL_UP,
 };
 #endif
-/*KevinA_Lin, 20140120*/
+
 static struct gpiomux_setting gpio_keys_active = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
@@ -217,8 +216,7 @@ static struct gpiomux_setting gpio_keys_suspend = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 
-/* Chewei_Liang 20140207 */
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 static struct gpiomux_setting gpio_spi_act_config = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
@@ -241,9 +239,7 @@ static struct gpiomux_setting gpio_spi_cs_eth_config = {
 	.drv = GPIOMUX_DRV_6MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
-#else
 #endif
-/* Chewei_Liang 20140207 */
 
 static struct gpiomux_setting wcnss_5wire_suspend_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
@@ -276,8 +272,7 @@ static struct gpiomux_setting gpio_i2c_config = {
 };
 
 static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
-/*KevinA_Lin, 20140120*/
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 	{
 		.gpio = 106,
 		.settings = {
@@ -301,7 +296,6 @@ static struct msm_gpiomux_config msm_keypad_configs[] __initdata = {
 		},
 	},
 #endif
-/*KevinA_Lin, 20140120*/
 	{
 		.gpio = 107,
 		.settings = {
@@ -349,8 +343,7 @@ static struct msm_gpiomux_config msm_lcd_configs[] __initdata = {
 };
 
 static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
-	/* Chewei_Liang 20140207 */
-	#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 	{
 		.gpio      = 0,		/* BLSP1 QUP1 SPI_DATA_MOSI */
 		.settings = {
@@ -379,9 +372,7 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_susp_config,
 		},
 	},
-	#else
-	#endif
-	/* Chewei_Liang 20140207 */
+#endif
 	{
 		.gpio      = 14,	/* BLSP1 QUP4 I2C_SDA */
 		.settings = {
@@ -410,17 +401,14 @@ static struct msm_gpiomux_config msm_blsp_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &gpio_i2c_config,
 		},
 	},
-	/* Chewei_Liang 20140207 */
-	#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 	{
 		.gpio      = 22,		/* BLSP1 QUP1 SPI_CS_ETH */
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &gpio_spi_cs_eth_config,
 		},
 	},
-	#else
-	#endif
-	/* Chewei_Liang 20140207 */
+#endif
 	/*CCI, IO Sensor - Add sensor I2C bus BLSP2 S*/
 	{
 		.gpio      = 6,		/* BLSP1 QUP2 I2C_SDA */

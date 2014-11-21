@@ -663,9 +663,7 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 	struct device_node *node;/* KevinA_Lin, 20130806 */ 
 	int cci_hwid, dt_hwid, rc;/* KevinA_Lin, 20130806 */ 
 	
-	/* KevinA_Lin, 20130806 */ 
-	#ifdef ORG_VER
-	#else
+#ifdef CONFIG_SONY_EAGLE
 	node = dev->of_node;
 	cci_hwid = get_cci_hw_id();
 	rc = of_property_read_u32(node, "hwid-type", &dt_hwid);
@@ -684,8 +682,7 @@ static int __devinit gpio_keys_probe(struct platform_device *pdev)
 	} else {
 		pr_info("%s(): cci_hwid=%d  match dt_hwid=%d\n", __func__, cci_hwid, dt_hwid);
 	}
-	#endif
-	/* KevinA_Lin, 20130806 */ 
+#endif
 	
 	if (!pdata) {
 		error = gpio_keys_get_devtree_pdata(dev, &alt_pdata);
@@ -838,16 +835,14 @@ static int gpio_keys_resume(struct device *dev)
 		if (bdata->button->wakeup && device_may_wakeup(dev))
 			disable_irq_wake(bdata->irq);
 
-		/*KevinA_Lin, 20140210*/
-		#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 		if (gpio_is_valid(bdata->button->gpio))
 			gpio_keys_gpio_report_event(bdata);
-		#else
+#else
 		 /*Bypass camera snapshot and focus key*/
 		if (gpio_is_valid(bdata->button->gpio) && (bdata->button->gpio!=107 && bdata->button->gpio!=108))
 			gpio_keys_gpio_report_event(bdata);
-		#endif
-		/*KevinA_Lin, 20140210*/
+#endif
 	}
 	input_sync(ddata->input);
 

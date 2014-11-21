@@ -33,12 +33,9 @@
 #include <mach/mpm.h>
 #include "gpio-msm-common.h"
 
-/* KevinA_Lin 20140218 */
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 #include <linux/suspend_resume_irq.h>
 #endif
-/* KevinA_Lin 20140218 */
 
 #ifdef CONFIG_GPIO_MSM_V3
 enum msm_tlmm_register {
@@ -452,12 +449,9 @@ void msm_gpio_show_resume_irq(void)
 		if (intstat) {
 			irq = msm_gpio_to_irq(&msm_gpio.gpio_chip, i);
 
-			/* KevinA_Lin 20140218 */
-			#ifdef ORG_VER
-			#else
+#ifdef CONFIG_SONY_EAGLE
 			suspned_resume_irq_write(irq);
-			#endif
-			/* KevinA_Lin 20140218 */
+#endif
 
 			pr_warning("%s: %d triggered\n",
 				__func__, irq);

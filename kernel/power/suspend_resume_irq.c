@@ -109,12 +109,12 @@ void suspned_resume_irq_write(int irq)
 	sri_current_info[irq].count ++; 
 	
 	/*Integrate resume irq time record debug */
-	#ifndef ORG_VER
+#ifdef CONFIG_SONY_EAGLE
 		sri_timestamp_info[sri_timestamp_index].irq = irq;
 		sri_timestamp_info[sri_timestamp_index].count = sri_current_info[irq].count;
 		sri_timestamp_info[sri_timestamp_index].timestamp = ktime_get_boottime();
 		sri_timestamp_index += 1;
-	#endif
+#endif
 	/*Integrate resume irq time record debug */
 
 	pr_info("%s():sri_current_info[%d].count = %d\n", __func__, irq, sri_current_info[irq].count);

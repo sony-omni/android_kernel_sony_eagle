@@ -1088,7 +1088,7 @@ static struct device_node *mdss_dsi_find_panel_of_node(
 		struct platform_device *pdev, char *panel_cfg)
 {
 //S [VVVV] JackBB 2013/10/03
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 	int len, i;
 	int ctrl_id = pdev->id - 1;
 	char panel_name[MDSS_MAX_PANEL_LEN];

@@ -31,12 +31,9 @@
 
 #include "sdhci.h"
 
-/**/
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 #include <mach/cci_hw_id.h>
 #endif
-/**/
 
 #define DRIVER_NAME "sdhci"
 
@@ -3206,10 +3203,9 @@ int sdhci_add_host(struct sdhci_host *host)
 	 */
 	mmc->ops = &sdhci_ops;
 
-	/**/
-	#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 	mmc->f_max = host->max_clk;
-	#else
+#else
 	if (0 == strncmp((const char*)mmc_hostname(mmc),"mmc1",sizeof("mmc1")))
 	{
 		int cci_hwid = CCI_HWID_INVALID;
@@ -3240,8 +3236,7 @@ int sdhci_add_host(struct sdhci_host *host)
 	}
 	printk(KERN_ERR "[%s] hostname[%s] host->max_clk[%d] to mmc->f_max[%d]\n",
 		__func__,mmc_hostname(mmc),host->max_clk,mmc->f_max);
-	#endif
-	/**/
+#endif
 
 	if (host->ops->get_min_clock)
 		mmc->f_min = host->ops->get_min_clock(host);

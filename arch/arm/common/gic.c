@@ -50,12 +50,9 @@
 #include <mach/socinfo.h>
 #include <mach/msm_rtb.h>
 
-/* KevinA_Lin 20140218 */
-#ifdef ORG_VER
-#else
+#ifdef CONFIG_SONY_EAGLE
 #include <linux/suspend_resume_irq.h>
 #endif
-/* KevinA_Lin 20140218 */
 
 union gic_base {
 	void __iomem *common_base;
@@ -265,12 +262,9 @@ static void gic_show_resume_irq(struct gic_chip_data *gic)
 	     i < gic->max_irq;
 	     i = find_next_bit(pending, gic->max_irq, i+1)) {
 
-		/* KevinA_Lin 20140218 */
-		#ifdef ORG_VER
-		#else
+#ifdef CONFIG_SONY_EAGLE
 			suspned_resume_irq_write(i + gic->irq_offset);
-		#endif
-		/* KevinA_Lin 20140218 */
+#endif
 
 		pr_warning("%s: %d triggered", __func__,
 					i + gic->irq_offset);

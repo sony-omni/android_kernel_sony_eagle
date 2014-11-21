@@ -23,7 +23,7 @@
 
 #define PC_TEMP_ROWS		31
 /*[Bug ] S Jonny_Chan */
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 #define PC_TEMP_COLS		8
 #else
 #define PC_TEMP_COLS		9

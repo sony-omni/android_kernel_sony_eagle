@@ -882,7 +882,7 @@ static int mdss_mdp_image_setup(struct mdss_mdp_pipe *pipe,
 
 
 //S JackBB 7/29 Screen 180
-#ifdef ORG_VER
+#ifndef CONFIG_SONY_EAGLE
 	dst_xy = (dst.y << 16) | dst.x;
 #else
   if(pipe->mfd && check_mdss_mdp_mfd_index(pipe->mfd) == 0 && g_mdss_dsi_lcd_id == 0)
@@ -960,9 +960,7 @@ static int mdss_mdp_format_setup(struct mdss_mdp_pipe *pipe)
 		opmode |= MDSS_MDP_OP_FLIP_UD;
 
 //S JackBB 7/29 Screen 180
-#ifdef ORG_VER
-#else
-
+#ifdef CONFIG_SONY_EAGLE
   if(pipe->mfd && check_mdss_mdp_mfd_index(pipe->mfd) == 0 && g_mdss_dsi_lcd_id == 0)
   {
     if(opmode & MDSS_MDP_OP_FLIP_LR)
