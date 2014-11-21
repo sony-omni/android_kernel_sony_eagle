@@ -148,7 +148,6 @@ static ssize_t ccistuff_show_crashflag(struct device *dev, struct device_attribu
 #endif
 	}
 #ifdef CONFIG_CCI_KLOG
-	
 	printk("%s():crashflag=0x%08x, unknownrebootflag=0x%08x, *unknownreboot = 0x%08x\n", __func__, crashflag,unknownrebootflag,*unknownreboot);
 #endif
 	return sprintf(buf, "0x%08x\n", crashflag);

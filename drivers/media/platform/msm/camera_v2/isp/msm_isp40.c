@@ -605,16 +605,16 @@ static long msm_vfe40_reset_hardware(struct vfe_device *vfe_dev ,
 	init_completion(&vfe_dev->reset_complete);
 	msm_camera_io_w_mb(rst_val, vfe_dev->vfe_base + 0xC);
 	/*QCT patch 20140627 S delete*/
-//	return wait_for_completion_interruptible_timeout(
-//		&vfe_dev->reset_complete, msecs_to_jiffies(50));
+	//return wait_for_completion_timeout(
+	//	&vfe_dev->reset_complete, msecs_to_jiffies(50));
 	/*QCT patch 20140627 E delete*/
 	/*QCT patch 20140627 S add*/
-		if (blocking) {
-			return wait_for_completion_interruptible_timeout(
-				&vfe_dev->reset_complete, msecs_to_jiffies(50));
-		} else {
-			return 0;
-		}
+	if (blocking) {
+		return wait_for_completion_timeout(
+			&vfe_dev->reset_complete, msecs_to_jiffies(50));
+	} else {
+		return 0;
+	}
 	/*QCT patch 20140627 E add*/
 }
 
