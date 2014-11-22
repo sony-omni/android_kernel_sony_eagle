@@ -36,7 +36,6 @@
 #define VFE40_8x26_VERSION 0x20000013
 #define VFE40_8x26V2_VERSION 0x20010014
 
-
 /* STATS_SIZE (BE + BG + BF+ RS + CS + IHIST + BHIST ) = 392 */
 #define VFE40_STATS_SIZE 392
 
@@ -644,6 +643,7 @@ static long msm_vfe40_reset_hardware(struct vfe_device *vfe_dev ,
 		msm_camera_io_w_mb(0x1EF, vfe_dev->vfe_base + 0xC);
 	}
 	return rc;
+	msm_camera_io_w_mb(rst_val, vfe_dev->vfe_base + 0xC);
 }
 
 static void msm_vfe40_axi_reload_wm(
@@ -1113,7 +1113,11 @@ static void msm_vfe40_axi_clear_wm_xbar_reg(
 		vfe_dev->vfe_base + VFE40_XBAR_BASE(wm));
 }
 
+#ifndef CONFIG_MACH_SONY_EAGLE
 #define MSM_ISP40_TOTAL_WM_UB 819
+#else
+#define MSM_ISP40_TOTAL_WM_UB 1140
+#endif
 
 static void msm_vfe40_cfg_axi_ub_equal_default(
 	struct vfe_device *vfe_dev)
@@ -1507,6 +1511,32 @@ static void msm_vfe40_get_error_mask(
 	*error_mask0 = 0x00000000;
 	*error_mask1 = 0x00FFFEFF;
 }
+
+#ifdef CONFIG_MACH_SONY_EAGLE
+static void msm_vfe40_get_overflow_mask(uint32_t *overflow_mask)
+{
+	*overflow_mask = 0x00FFFE7E;
+}
+static void msm_vfe40_get_irq_mask(struct vfe_device *vfe_dev,
+	uint32_t *irq0_mask, uint32_t *irq1_mask)
+{
+	*irq0_mask = msm_camera_io_r(vfe_dev->vfe_base + 0x28);
+	*irq1_mask = msm_camera_io_r(vfe_dev->vfe_base + 0x2C);
+}
+static void msm_vfe40_restore_irq_mask(struct vfe_device *vfe_dev)
+{
+	msm_camera_io_w(vfe_dev->error_info.overflow_recover_irq_mask0,
+		vfe_dev->vfe_base + 0x28);
+	msm_camera_io_w(vfe_dev->error_info.overflow_recover_irq_mask1,
+		vfe_dev->vfe_base + 0x2C);
+}
+static void msm_vfe40_get_halt_restart_mask(uint32_t *irq0_mask,
+	uint32_t *irq1_mask)
+{
+	*irq0_mask = BIT(31); // reset_ack_irq
+	*irq1_mask = BIT(8);  // bus_bdg_halt_ack_irq
+}
+#endif
 
 static struct msm_vfe_axi_hardware_info msm_vfe40_axi_hw_info = {
 	.num_wm = 7,
