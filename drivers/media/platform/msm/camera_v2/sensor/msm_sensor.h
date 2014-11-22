@@ -61,6 +61,7 @@ struct msm_sensor_ctrl_t {
 	struct msm_sensor_packed_cfg_t *cfg_override;
 	struct msm_sd_subdev msm_sd;
 	enum cci_i2c_master_t cci_i2c_master;
+        struct device *dev;
 
 	struct msm_camera_i2c_client *sensor_i2c_client;
 	struct v4l2_subdev_info *sensor_v4l2_subdev_info;
@@ -69,6 +70,7 @@ struct msm_sensor_ctrl_t {
 	struct msm_sensor_fn_t *func_tbl;
 	struct msm_camera_i2c_reg_setting stop_setting;
 	void *misc_regulator;
+        bool stop_setting_valid;
 	enum msm_sensor_state_t sensor_state;
 	uint8_t is_probe_succeed;
 	uint32_t id;

@@ -288,9 +288,10 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_panel_info *pinfo = NULL;
+	static bool gpio_request_done;
 #ifndef CONFIG_MACH_SONY_FLAMINGO
 /* [Flamingo] LCM driver porting */
-	int i, rc = 0;;
+	int i, rc = 0;
 #endif
 
 	if (pdata == NULL) {
@@ -405,6 +406,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 		gpio_request_done = false;
 	}
 #endif
+	return rc;
 }
 
 static char caset[] = {0x2a, 0x00, 0x00, 0x03, 0x00};	/* DTYPE_DCS_LWRITE */
