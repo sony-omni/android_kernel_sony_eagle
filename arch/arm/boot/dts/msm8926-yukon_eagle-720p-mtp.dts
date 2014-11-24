@@ -13,8 +13,9 @@
 
 /dts-v1/;
 /include/ "msm8926.dtsi"
-/include/ "msm8226-yukon_eagle-v1.dtsi"
+/include/ "msm8226-yukon_eagle-720p-mtp.dtsi"
 /include/ "msm8226-yukon_eagle-camera-sensor-mtp.dtsi"
+/include/ "msm-yukon_eagle-pm8226.dtsi"
 
 / {
 	model = "Qualcomm MSM 8926 MTP";
