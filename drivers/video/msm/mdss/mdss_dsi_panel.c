@@ -1282,7 +1282,6 @@ int mdss_dsi_panel_init(struct device_node *node,
 		pinfo->cont_splash_enabled = false;
 	pr_info("%s: Continuous splash %s", __func__,
 		pinfo->cont_splash_enabled ? "enabled" : "disabled");
-
 #ifdef CONFIG_MACH_SONY_FLAMINGO
 /*[Flamingo] LCM driver porting */
 	rc =gpio_request(TRULY_LCM_BL_EN,"BL EN PIN");
