@@ -613,11 +613,14 @@ static long msm_vfe40_reset_hardware(struct vfe_device *vfe_dev ,
 	msm_camera_io_w_mb(rst_val, vfe_dev->vfe_base + 0xC);
 #ifdef CONFIG_MACH_SONY_EAGLE
 		if (blocking) {
-			return wait_for_completion_interruptible_timeout(
+			return wait_for_completion_timeout(
 				&vfe_dev->reset_complete, msecs_to_jiffies(50));
 		} else {
 			return 0;
 		}
+#else
+	return wait_for_completion_timeout(
+		&vfe_dev->reset_complete, msecs_to_jiffies(50));
 #endif
 }
 
