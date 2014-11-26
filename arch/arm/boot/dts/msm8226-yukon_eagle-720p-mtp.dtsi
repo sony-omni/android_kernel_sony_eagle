@@ -652,7 +652,6 @@
 };
 
 &pm8226_chg {
-	qcom,charging-disabled;
 	qcom,battery-data = <&mtp_batterydata>;
 	qcom,vddmax-mv = <4210>;
 	qcom,vddsafe-mv = <4250>;
