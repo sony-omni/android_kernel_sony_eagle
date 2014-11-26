@@ -284,7 +284,6 @@
 		/* cci,enable_gpio = <62>; */
 		cci,control_gpio = <0>;
 	};
-
 };
 
 &usb_otg {
