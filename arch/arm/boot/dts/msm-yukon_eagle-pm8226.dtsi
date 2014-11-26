@@ -43,6 +43,7 @@
 	qcom,bms-adc_tm = <&pm8226_adc_tm>;
 };
 
+
 &spmi_bus {
 	qcom,pm8226@0 {
 		qcom,leds@d300 {
