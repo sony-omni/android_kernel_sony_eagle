@@ -724,8 +724,7 @@ int msm_post_event(struct v4l2_event *event, int timeout)
 #if defined(CONFIG_SONY_CAM_QCAMERA)
 	retry_count = 500;
 	do {
-		rc = wait_event_interruptible_timeout(cmd_ack->wait,
-			!list_empty_careful(&cmd_ack->command_q.list),
+			rc = wait_for_completion_timeout(&cmd_ack->wait_complete,
 			msecs_to_jiffies(timeout));
 		retry_count--;
 		if (rc != -ERESTARTSYS)
@@ -741,8 +740,7 @@ int msm_post_event(struct v4l2_event *event, int timeout)
 	}
 #else
 	do {
-		rc = wait_event_interruptible_timeout(cmd_ack->wait,
-			!list_empty_careful(&cmd_ack->command_q.list),
+			rc = wait_for_completion_timeout(&cmd_ack->wait_complete,
 			msecs_to_jiffies(timeout));
 		if (rc != -ERESTARTSYS)
 			break;
