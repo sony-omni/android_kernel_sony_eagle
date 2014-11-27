@@ -66,7 +66,7 @@ endif # ifeq ($(CCI_TARGET_KLOG),true)
 #[VY5x] <== CCI KLog, added by Jimmy@CCI
 
 #S:LO for sim detection
-ifeq ($(TARGET_PRODUCT),eagle_ds)
+ifeq ($(TARGET_KERNEL_CONFIG),eagle_ds_defconfig)
   CCI_SIM_DET_EAGLE_DS := 1
 endif
 #E:LO for sim detection
