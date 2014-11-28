@@ -39,7 +39,3 @@
 		};
 	};
 };
-
-&pm8226_chg_chgr {
-        regulator-name = "flash_wa";
-};
