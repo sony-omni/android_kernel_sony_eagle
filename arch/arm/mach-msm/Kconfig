@@ -1272,6 +1272,15 @@ config MACH_SONY_EAGLE
 	  If you enable this config,
 	  Please use SONY Mobile source tree.
 
+config EAGLE_DS
+        depends on MACH_SONY_EAGLE
+        bool "Sony Mobile Eagle dsds support"
+        default n
+        help
+          Support for dsds on the SONY Mobile Xperia M2 device.
+          If you enable this config,
+          Please use SONY Mobile source tree.
+
 config MACH_SONY_FLAMINGO
 	depends on ARCH_MSM8226
 	select MACH_SONY_YUKON
