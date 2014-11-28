@@ -115,6 +115,21 @@ static struct gpiomux_setting uim1_det_susp_cfg = {
 	.dir = GPIOMUX_IN,
 };
 
+#ifdef CONFIG_EAGLE_DS
+static struct gpiomux_setting uim2_det_actv_cfg = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_UP,
+	.dir = GPIOMUX_IN,
+};
+static struct gpiomux_setting uim2_det_susp_cfg = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+	.dir = GPIOMUX_IN,
+};
+#endif
+
 static struct msm_gpiomux_config msm8226_uim_det_configs[] __initdata = {
 	{
 		.gpio      = 60,
@@ -123,6 +138,15 @@ static struct msm_gpiomux_config msm8226_uim_det_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &uim1_det_susp_cfg,
 		},
 	},
+#ifdef CONFIG_EAGLE_DS
+	{
+		.gpio      = 56,
+		.settings = {
+			[GPIOMUX_ACTIVE]    = &uim2_det_actv_cfg,
+			[GPIOMUX_SUSPENDED] = &uim2_det_susp_cfg,
+		},
+	},
+#endif
 };
 //E:LO
 
