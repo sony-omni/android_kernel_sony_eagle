@@ -83,6 +83,10 @@ static void input_pass_event(struct input_dev *dev,
 	rcu_read_lock();
 
 	handle = rcu_dereference(dev->grab);
+#ifdef CONFIG_MACH_SONY_EAGLE /*erikcas: temp debug */
+	if (code==0x2fe || code==0x210 || code==114 || code==115 || code==116)
+		pr_info("%s():type=%d, code=%d , value=%d\n ", __func__, type, code, value);
+#endif
 	if (handle)
 		handle->handler->event(handle, type, code, value);
 	else {
