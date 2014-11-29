@@ -1029,6 +1029,9 @@ static struct msm_cam_clk_info cam_8974_clk_info[] = {
 int32_t msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t rc = 0, index = 0;
+#ifdef CONFIG_MACH_SONY_EAGLE
+        int32_t gpiotestnum = 0;
+#endif
 	struct msm_sensor_power_setting_array *power_setting_array = NULL;
 	struct msm_sensor_power_setting *power_setting = NULL;
 	struct msm_camera_sensor_board_info *data = s_ctrl->sensordata;
@@ -1093,6 +1096,13 @@ int32_t msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 					SENSOR_GPIO_MAX);
 				goto power_up_failed;
 			}
+#ifdef CONFIG_MACH_SONY_EAGLE
+			gpiotestnum = data->gpio_conf->gpio_num_info->gpio_num
+					[power_setting->seq_val];
+			if((gpiotestnum == 69) && (gpio69_count == 2)){
+				CDBG("[VY5X][CTS]Avoid sub camera preview fail in CTS\n");
+			}
+#endif
 			pr_debug("%s:%d gpio set val %d\n", __func__, __LINE__,
 				data->gpio_conf->gpio_num_info->gpio_num
 				[power_setting->seq_val]);
@@ -1222,7 +1232,6 @@ int32_t msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	struct msm_sensor_power_setting *power_setting = NULL;
 	struct msm_camera_sensor_board_info *data = s_ctrl->sensordata;
 	s_ctrl->stop_setting_valid = 0;
-
 #ifdef CONFIG_MACH_SONY_FLAMINGO
 // [Flamingo] Fixed Camera CTS issue:testMultiCameraRelease
 	if(powerup_count >1){
