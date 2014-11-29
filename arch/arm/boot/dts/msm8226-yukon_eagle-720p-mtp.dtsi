@@ -287,9 +287,7 @@
 		/* cci,enable_gpio = <62>; */
 		cci,control_gpio = <0>;
 	};
-
 };
-
 
 &rpm_bus {
 	rpm-regulator-ldoa5 {
@@ -325,7 +323,7 @@
 			1 &intc 0 140 0
 			2 &spmi_bus 0x0 0x0 0x9 0x0>;
 	interrupt-names = "core_irq", "async_irq", "pmic_id_irq";
-
+        qcom,ahb-async-bridge-bypass;
 	qcom,hsusb-otg-mode = <3>;
 	vbus_otg-supply = <&pm8226_chg_otg>;
 };
@@ -444,7 +442,7 @@
 			status = "okay";
 			qcom,led_mpp_2 {
 				label = "mpp";
-				linux,name = "led:rgb_blue";
+				linux,name = "rgb_blue";
 				linux,default-trigger = "none";
 				qcom,default-state = "off";
 				qcom,max-current = <40>;
@@ -464,10 +462,10 @@
 						00];
 				qcom,use-blink;
 			};
-
 		};
+
 		qcom,power-on@800 {
-			qcom,pon_2 {
+				qcom,pon_2 {
 				linux,code = <115>;
 			};
 		};
@@ -476,7 +474,7 @@
 			status = "okay";
 			qcom,led_mpp_4 {
 				label = "mpp";
-				linux,name = "led:rgb_green";
+				linux,name = "rgb_green";
 				linux,default-trigger = "none";
 				qcom,default-state = "off";
 				qcom,max-current = <40>;
@@ -503,7 +501,7 @@
 			status = "okay";
 			qcom,led_mpp_6 {
 				label = "mpp";
-				linux,name = "led:rgb_red";
+				linux,name = "rgb_red";
 				linux,default-trigger = "none";
 				qcom,default-state = "off";
 				qcom,max-current = <40>;
