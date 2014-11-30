@@ -143,8 +143,7 @@
 			reg = <0x48>;
 			vdd_ana-supply = <&pm8226_l19>;
 			vcc_i2c-supply = <&pm8226_lvs1>;
-                };
-
+		};
 	};
 
 	i2c@f9925000 { /* BLSP1 QUP3 */
