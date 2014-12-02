@@ -198,7 +198,15 @@ struct dsi_clk_desc {
 	u32 pre_div_func;
 };
 
+struct dsi_panel_cmds {
+	char *buf;
+	int blen;
+	struct dsi_cmd_desc *cmds;
+	int cmd_cnt;
+	int link_state;
+};
 
+#ifdef CONFIG_FB_MSM_MDSS_SPECIFIC_PANEL
 /* panel DriverIC type */
 enum {
 	PANEL_DRIVER_IC_R63311,
@@ -208,17 +216,87 @@ enum {
 	PANEL_DRIVER_IC_NONE,
 };
 
-struct dsi_panel_cmds {
-	char *buf;
-	int blen;
-	struct dsi_cmd_desc *cmds;
-	int cmd_cnt;
-	int link_state;
-};
-
 #define DEFAULT_CMDS	0
 #define DETECTED_CMDS	1
 #define MAX_CMDS	2
+
+struct mdss_pcc_color_tbl {
+	u32 color_type;
+	u32 area_num;
+	u32 u_min;
+	u32 u_max;
+	u32 v_min;
+	u32 v_max;
+	u32 r_data;
+	u32 g_data;
+	u32 b_data;
+} __packed;
+
+#define PCC_STS_UD	0x01	/* update request */
+
+struct mdss_pcc_data {
+	struct mdss_pcc_color_tbl *color_tbl;
+	u32 tbl_size;
+	u8 tbl_idx;
+	u8 pcc_sts;
+	u32 u_data;
+	u32 v_data;
+	int param_type;
+};
+
+struct mdss_panel_power_seq {
+	int disp_en_pre;
+	int disp_en_post;
+	int seq_num;
+	int *rst_seq;
+	int seq_b_num;
+	int *rst_b_seq;
+};
+
+struct mdss_panel_specific_pdata {
+	bool detected;
+	int driver_ic;
+	int32_t lcd_id;
+	int32_t adc_uv;
+	int disp_on_in_hs;
+	int panel_detect;
+	int wait_time_before_on_cmd;
+	int init_from_begin;
+	int cabc_enabled;
+	int cabc_active;
+	int lcm_bl_gpio;
+	int mipi_rst;
+	int disp_p5;
+	int disp_n5;
+	bool dsi_seq_hack;
+
+	struct dsi_panel_cmds cabc_early_on_cmds;
+	struct dsi_panel_cmds cabc_on_cmds;
+	struct dsi_panel_cmds cabc_off_cmds[MAX_CMDS];
+	struct dsi_panel_cmds cabc_late_off_cmds[MAX_CMDS];
+	struct dsi_panel_cmds cabc_deferred_on_cmds;
+
+	struct dsi_panel_cmds einit_cmds;
+	struct dsi_panel_cmds init_cmds;
+	struct dsi_panel_cmds off_cmds[MAX_CMDS];
+	struct dsi_panel_cmds id_read_cmds;
+
+	int (*panel_power_on) (struct mdss_panel_data *pdata, int enable);
+	int (*disp_on) (struct mdss_panel_data *pdata);
+	int (*detect) (struct mdss_panel_data *pdata);
+	int (*update_panel) (struct mdss_panel_data *pdata);
+	int (*update_fps) (struct msm_fb_data_type *mfd);
+	int (*reset) (struct mdss_panel_data *pdata, int enable);
+	struct dsi_panel_cmds pre_uv_read_cmds;
+	struct dsi_panel_cmds uv_read_cmds;
+	struct mdss_pcc_data pcc_data;
+
+	struct mdss_panel_power_seq on_seq;
+	struct mdss_panel_power_seq off_seq;
+	u32 down_period;
+	u32 new_vfp;
+};
+#endif
 
 struct dsi_kickoff_action {
 	struct list_head act_entry;
@@ -409,7 +487,7 @@ struct dsi_status_data {
 
 int dsi_panel_device_register(struct device_node *pan_node,
 				struct mdss_dsi_ctrl_pdata *ctrl_pdata);
-void mdss_dsi_panel_power_detect(struct platform_device *pdev, int enable);
+int mdss_dsi_panel_power_detect(struct platform_device *pdev, int enable);
 
 int mdss_dsi_cmds_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 		struct dsi_cmd_desc *cmds, int cnt);
