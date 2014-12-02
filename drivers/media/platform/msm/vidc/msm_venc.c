@@ -718,7 +718,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.maximum = V4L2_CID_MPEG_VIDC_VIDEO_DEINTERLACE_ENABLED,
 		.default_value = V4L2_CID_MPEG_VIDC_VIDEO_DEINTERLACE_DISABLED,
 		.step = 1,
-		.cluster = MSM_VENC_CTRL_CLUSTER_DEINTERLACE,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_USELTRFRAME,
@@ -729,7 +728,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.default_value = 0,
 		.step = 1,
 		.qmenu = NULL,
-		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_LTRCOUNT,
@@ -740,7 +738,7 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.default_value = 0,
 		.step = 1,
 		.qmenu = NULL,
-		.cluster = MSM_VENC_CTRL_CLUSTER_USE_LTRFRAME,
+		
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_LTRMODE,
@@ -751,7 +749,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.default_value = V4L2_MPEG_VIDC_VIDEO_LTR_MODE_DISABLE,
 		.step = 1,
 		.qmenu = NULL,
-		.cluster = MSM_VENC_CTRL_CLUSTER_USE_LTRFRAME,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_MARKLTRFRAME,
@@ -762,7 +759,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.default_value = 0,
 		.step = 1,
 		.qmenu = NULL,
-		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_HIER_P_NUM_LAYERS,
@@ -773,7 +769,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.default_value = 0,
 		.step = 1,
 		.qmenu = NULL,
-		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_ENABLE_INITIAL_QP,
@@ -783,7 +778,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.maximum = 0,
 		.default_value = 0,
 		.step = 0,
-		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_I_FRAME_QP,
@@ -2165,110 +2159,6 @@ static int try_set_ctrl(struct msm_vidc_inst *inst, struct v4l2_ctrl *ctrl)
 				(void *)inst->session, property_id, pdata);
 	}
 
-	return rc;
-}
-
-static struct v4l2_ctrl *get_cluster_from_id(int id)
-{
-	int c;
-	for (c = 0; c < ARRAY_SIZE(msm_venc_ctrls); ++c)
-		if (msm_venc_ctrls[c].id == id)
-			return (struct v4l2_ctrl *)msm_venc_ctrls[c].priv;
-	return NULL;
-}
-
-static int try_set_ext_ctrl(struct msm_vidc_inst *inst,
-	struct v4l2_ext_controls *ctrl)
-{
-	int rc = 0, i;
-	struct v4l2_ext_control *control;
-	struct hfi_device *hdev;
-	struct hal_ltrmode ltrmode;
-	struct v4l2_ctrl *cluster;
-	u32 property_id = 0;
-	void *pdata = NULL;
-	struct msm_vidc_core_capability *cap = NULL;
-	struct hal_initial_quantization quant;
-
-	if (!inst || !inst->core || !inst->core->device || !ctrl) {
-		dprintk(VIDC_ERR, "%s invalid parameters\n", __func__);
-		return -EINVAL;
-	}
-
-	cluster = get_cluster_from_id(ctrl->controls[0].id);
-
-	if (!cluster) {
-		dprintk(VIDC_ERR, "Invalid Ctrl returned for id: %x\n",
-			ctrl->controls[0].id);
-		return -EINVAL;
-	}
-
-	hdev = inst->core->device;
-	cap = &inst->capability;
-
-	control = ctrl->controls;
-	for (i = 0; i < ctrl->count; i++) {
-		switch (control[i].id) {
-		case V4L2_CID_MPEG_VIDC_VIDEO_LTRMODE:
-			ltrmode.ltrmode = control[i].value;
-			ltrmode.trustmode = 1;
-			property_id = HAL_PARAM_VENC_LTRMODE;
-			pdata = &ltrmode;
-			break;
-		case V4L2_CID_MPEG_VIDC_VIDEO_LTRCOUNT:
-			ltrmode.ltrcount =  control[i].value;
-			if (ltrmode.ltrcount > cap->ltr_count.max) {
-				dprintk(VIDC_ERR,
-						"Invalid LTR count %d. Supported max: %d\n",
-						ltrmode.ltrcount,
-						cap->ltr_count.max);
-				/*
-				 * FIXME: Return an error (-EINVALID)
-				 * here once VP8 supports LTR count
-				 * capability
-				 */
-				ltrmode.ltrcount = 1;
-			}
-			ltrmode.trustmode = 1;
-			property_id = HAL_PARAM_VENC_LTRMODE;
-			pdata = &ltrmode;
-			break;
-		case V4L2_CID_MPEG_VIDC_VIDEO_ENABLE_INITIAL_QP:
-			property_id = HAL_PARAM_VENC_ENABLE_INITIAL_QP;
-			quant.initqp_enable = control[i].value;
-			pdata = &quant;
-			break;
-		case V4L2_CID_MPEG_VIDC_VIDEO_I_FRAME_QP:
-			quant.qpi = control[i].value;
-			property_id = HAL_PARAM_VENC_ENABLE_INITIAL_QP;
-			pdata = &quant;
-			break;
-		case V4L2_CID_MPEG_VIDC_VIDEO_P_FRAME_QP:
-			quant.qpp = control[i].value;
-			property_id = HAL_PARAM_VENC_ENABLE_INITIAL_QP;
-			pdata = &quant;
-			break;
-		case V4L2_CID_MPEG_VIDC_VIDEO_B_FRAME_QP:
-			quant.qpb = control[i].value;
-			property_id = HAL_PARAM_VENC_ENABLE_INITIAL_QP;
-			pdata = &quant;
-			break;
-		default:
-			dprintk(VIDC_ERR, "Invalid id set: %d\n",
-					control[i].id);
-			rc = -ENOTSUPP;
-			break;
-		}
-		if (rc)
-			break;
-	}
-
-	if (!rc && property_id) {
-		dprintk(VIDC_DBG, "Control: HAL property=%x\n", property_id);
-		rc = call_hfi_op(hdev, session_set_property,
-				(void *)inst->session, property_id, pdata);
-	}
-	pr_err("Returning from %s\n", __func__);
 	return rc;
 }
 
