@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1050,6 +1050,17 @@ static void hdmi_tx_hpd_int_work(struct work_struct *work)
 	DEV_DBG("%s: Got HPD interrupt\n", __func__);
 
 	if (hdmi_ctrl->hpd_state) {
+		/*
+		 * If a down stream device or bridge chip is attached to hdmi
+		 * Tx core output, it is likely that it might be powering the
+		 * hpd module ON/OFF on cable connect/disconnect as it would
+		 * have its own mechanism of detecting cable. Flush power off
+		 * work is needed in case there is any race condidtion between
+		 * power off and on during fast cable plug in/out.
+		 */
+		if (hdmi_ctrl->ds_registered)
+			flush_work(&hdmi_ctrl->power_off_work);
+
 		if (hdmi_tx_enable_power(hdmi_ctrl, HDMI_TX_DDC_PM, true)) {
 			DEV_ERR("%s: Failed to enable ddc power\n", __func__);
 			return;
@@ -1065,6 +1076,13 @@ static void hdmi_tx_hpd_int_work(struct work_struct *work)
 	} else {
 		hdmi_tx_set_audio_switch_node(hdmi_ctrl, 0, false);
 		hdmi_tx_wait_for_audio_engine(hdmi_ctrl);
+
+		if (!hdmi_ctrl->panel_power_on) {
+			if (hdmi_tx_enable_power(hdmi_ctrl, HDMI_TX_DDC_PM,
+				false))
+				DEV_WARN("%s: Failed to disable ddc power\n",
+					__func__);
+		}
 
 		hdmi_tx_send_cable_notification(hdmi_ctrl, 0);
 		DEV_INFO("%s: sense cable DISCONNECTED: state switch to %d\n",
@@ -2242,6 +2260,8 @@ int msm_hdmi_register_mhl(struct platform_device *pdev,
 	ops->set_mhl_max_pclk = hdmi_tx_set_mhl_max_pclk;
 	ops->set_upstream_hpd = hdmi_tx_set_mhl_hpd;
 
+	hdmi_ctrl->ds_registered = true;
+
 	return 0;
 }
 
@@ -3207,7 +3227,7 @@ static int hdmi_tx_get_dt_clk_data(struct device *dev,
 
 	switch (module_type) {
 	case HDMI_TX_HPD_PM:
-		mp->num_clk = 3;
+		mp->num_clk = 4;
 		mp->clk_config = devm_kzalloc(dev, sizeof(struct dss_clk) *
 			mp->num_clk, GFP_KERNEL);
 		if (!mp->clk_config) {
@@ -3233,10 +3253,14 @@ static int hdmi_tx_get_dt_clk_data(struct device *dev,
 		snprintf(mp->clk_config[2].clk_name, 32, "%s", "mdp_core_clk");
 		mp->clk_config[2].type = DSS_CLK_AHB;
 		mp->clk_config[2].rate = 0;
+
+		snprintf(mp->clk_config[3].clk_name, 32, "%s", "alt_iface_clk");
+		mp->clk_config[3].type = DSS_CLK_AHB;
+		mp->clk_config[3].rate = 0;
 		break;
 
 	case HDMI_TX_CORE_PM:
-		mp->num_clk = 2;
+		mp->num_clk = 1;
 		mp->clk_config = devm_kzalloc(dev, sizeof(struct dss_clk) *
 			mp->num_clk, GFP_KERNEL);
 		if (!mp->clk_config) {
@@ -3249,10 +3273,6 @@ static int hdmi_tx_get_dt_clk_data(struct device *dev,
 		mp->clk_config[0].type = DSS_CLK_PCLK;
 		/* This rate will be overwritten when core is powered on */
 		mp->clk_config[0].rate = 148500000;
-
-		snprintf(mp->clk_config[1].clk_name, 32, "%s", "alt_iface_clk");
-		mp->clk_config[1].type = DSS_CLK_AHB;
-		mp->clk_config[1].rate = 0;
 		break;
 
 	case HDMI_TX_DDC_PM:
@@ -3759,6 +3779,7 @@ static int __devexit hdmi_tx_remove(struct platform_device *pdev)
 
 static const struct of_device_id hdmi_tx_dt_match[] = {
 	{.compatible = COMPATIBLE_NAME,},
+	{ /* Sentinel */ },
 };
 MODULE_DEVICE_TABLE(of, hdmi_tx_dt_match);
 

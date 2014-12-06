@@ -43,6 +43,8 @@
 #define TAPAN_HPH_PA_SETTLE_COMP_OFF 13000
 
 #define DAPM_MICBIAS2_EXTERNAL_STANDALONE "MIC BIAS2 External Standalone"
+#define TAPAN_VALIDATE_RX_SBPORT_RANGE(port) ((port >= 16) && (port <= 20))
+#define TAPAN_CONVERT_RX_SBPORT_ID(port) (port - 16) /* RX1 port ID = 0 */
 
 #define TAPAN_VDD_CX_OPTIMAL_UA 10000
 #define TAPAN_VDD_CX_SLEEP_UA 2000
@@ -1342,6 +1344,9 @@ static const struct soc_enum rx3_mix1_inp1_chain_enum =
 static const struct soc_enum rx3_mix1_inp2_chain_enum =
 	SOC_ENUM_SINGLE(TAPAN_A_CDC_CONN_RX3_B1_CTL, 4, 13, rx_3_4_mix1_text);
 
+static const struct soc_enum rx3_mix1_inp3_chain_enum =
+	SOC_ENUM_SINGLE(TAPAN_A_CDC_CONN_RX3_B2_CTL, 0, 13, rx_3_4_mix1_text);
+
 static const struct soc_enum rx4_mix1_inp1_chain_enum =
 	SOC_ENUM_SINGLE(TAPAN_A_CDC_CONN_RX4_B1_CTL, 0, 13, rx_3_4_mix1_text);
 
@@ -1439,6 +1444,9 @@ static const struct snd_kcontrol_new rx3_mix1_inp1_mux =
 
 static const struct snd_kcontrol_new rx3_mix1_inp2_mux =
 	SOC_DAPM_ENUM("RX3 MIX1 INP2 Mux", rx3_mix1_inp2_chain_enum);
+
+static const struct snd_kcontrol_new rx3_mix1_inp3_mux =
+	SOC_DAPM_ENUM("RX3 MIX1 INP3 Mux", rx3_mix1_inp3_chain_enum);
 
 static const struct snd_kcontrol_new rx4_mix1_inp1_mux =
 	SOC_DAPM_ENUM("RX4 MIX1 INP1 Mux", rx4_mix1_inp1_chain_enum);
@@ -3229,6 +3237,8 @@ static int tapan_volatile(struct snd_soc_codec *ssc, unsigned int reg)
 }
 
 #define TAPAN_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
+#define TAPAN_FORMATS_S16_S24_LE (SNDRV_PCM_FMTBIT_S16_LE | \
+				  SNDRV_PCM_FORMAT_S24_LE)
 static int tapan_write(struct snd_soc_codec *codec, unsigned int reg,
 	unsigned int value)
 {
@@ -3636,6 +3646,68 @@ static int tapan_set_decimator_rate(struct snd_soc_dai *dai,
 	return 0;
 }
 
+static void tapan_set_rxsb_port_format(struct snd_pcm_hw_params *params,
+				       struct snd_soc_dai *dai)
+{
+	struct snd_soc_codec *codec = dai->codec;
+	struct tapan_priv *tapan_p = snd_soc_codec_get_drvdata(codec);
+	struct wcd9xxx_codec_dai_data *cdc_dai;
+	struct wcd9xxx_ch *ch;
+	int port;
+	u8 bit_sel;
+	u16 sb_ctl_reg, field_shift;
+
+	switch (params_format(params)) {
+	case SNDRV_PCM_FORMAT_S16_LE:
+		bit_sel = 0x2;
+		tapan_p->dai[dai->id].bit_width = 16;
+		break;
+	case SNDRV_PCM_FORMAT_S24_LE:
+		bit_sel = 0x0;
+		tapan_p->dai[dai->id].bit_width = 24;
+		break;
+	default:
+		dev_err(codec->dev, "Invalid format %x\n",
+			params_format(params));
+		return;
+	}
+
+	cdc_dai = &tapan_p->dai[dai->id];
+
+	list_for_each_entry(ch, &cdc_dai->wcd9xxx_ch_list, list) {
+		port = wcd9xxx_get_slave_port(ch->ch_num);
+
+		if (IS_ERR_VALUE(port) ||
+		    !TAPAN_VALIDATE_RX_SBPORT_RANGE(port)) {
+			dev_warn(codec->dev,
+				 "%s: invalid port ID %d returned for RX DAI\n",
+				 __func__, port);
+			return;
+		}
+
+		port = TAPAN_CONVERT_RX_SBPORT_ID(port);
+
+		if (port <= 3) {
+			sb_ctl_reg = TAPAN_A_CDC_CONN_RX_SB_B1_CTL;
+			field_shift = port << 1;
+		} else if (port <= 4) {
+			sb_ctl_reg = TAPAN_A_CDC_CONN_RX_SB_B2_CTL;
+			field_shift = (port - 4) << 1;
+		} else { /* should not happen */
+			dev_warn(codec->dev,
+				 "%s: bad port ID %d\n", __func__, port);
+			return;
+		}
+
+		dev_dbg(codec->dev, "%s: sb_ctl_reg %x field_shift %x\n"
+			"bit_sel %x\n", __func__, sb_ctl_reg, field_shift,
+			bit_sel);
+		snd_soc_update_bits(codec, sb_ctl_reg, 0x3 << field_shift,
+				    bit_sel << field_shift);
+	}
+}
+
+
 static int tapan_hw_params(struct snd_pcm_substream *substream,
 			    struct snd_pcm_hw_params *params,
 			    struct snd_soc_dai *dai)
@@ -3748,29 +3820,7 @@ static int tapan_hw_params(struct snd_pcm_substream *substream,
 			snd_soc_update_bits(codec, TAPAN_A_CDC_CLK_I2S_CTL,
 					    0x03, (rx_fs_rate >> 0x05));
 		} else {
-			switch (params_format(params)) {
-			case SNDRV_PCM_FORMAT_S16_LE:
-				snd_soc_update_bits(codec,
-					TAPAN_A_CDC_CONN_RX_SB_B1_CTL,
-					0xFF, 0xAA);
-				snd_soc_update_bits(codec,
-					TAPAN_A_CDC_CONN_RX_SB_B2_CTL,
-					0xFF, 0x2A);
-				tapan->dai[dai->id].bit_width = 16;
-				break;
-			case SNDRV_PCM_FORMAT_S24_LE:
-				snd_soc_update_bits(codec,
-					TAPAN_A_CDC_CONN_RX_SB_B1_CTL,
-					0xFF, 0x00);
-				snd_soc_update_bits(codec,
-					TAPAN_A_CDC_CONN_RX_SB_B2_CTL,
-					0xFF, 0x00);
-				tapan->dai[dai->id].bit_width = 24;
-				break;
-			default:
-				dev_err(codec->dev, "Invalid format\n");
-				break;
-			}
+			tapan_set_rxsb_port_format(params, dai);
 			tapan->dai[dai->id].rate   = params_rate(params);
 		}
 		break;
@@ -3887,7 +3937,7 @@ static struct snd_soc_dai_driver tapan_dai[] = {
 		.playback = {
 			.stream_name = "AIF1 Playback",
 			.rates = WCD9306_RATES,
-			.formats = TAPAN_FORMATS,
+			.formats = TAPAN_FORMATS_S16_S24_LE,
 			.rate_max = 192000,
 			.rate_min = 8000,
 			.channels_min = 1,
@@ -3915,7 +3965,7 @@ static struct snd_soc_dai_driver tapan_dai[] = {
 		.playback = {
 			.stream_name = "AIF2 Playback",
 			.rates = WCD9306_RATES,
-			.formats = TAPAN_FORMATS,
+			.formats = TAPAN_FORMATS_S16_S24_LE,
 			.rate_min = 8000,
 			.rate_max = 192000,
 			.channels_min = 1,
@@ -3957,7 +4007,7 @@ static struct snd_soc_dai_driver tapan_dai[] = {
 		.playback = {
 			.stream_name = "AIF3 Playback",
 			.rates = WCD9306_RATES,
-			.formats = TAPAN_FORMATS,
+			.formats = TAPAN_FORMATS_S16_S24_LE,
 			.rate_min = 8000,
 			.rate_max = 192000,
 			.channels_min = 1,
@@ -4299,6 +4349,23 @@ static int tapan_codec_chargepump_vdd_event(struct snd_soc_dapm_widget *w,
 	return 0;
 }
 
+static int tapan_codec_set_iir_gain(struct snd_soc_dapm_widget *w,
+	struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_codec *codec = w->codec;
+	int value = 0;
+
+	switch (event) {
+	case SND_SOC_DAPM_POST_PMU:
+		value = snd_soc_read(codec, TAPAN_A_CDC_IIR1_GAIN_B1_CTL);
+		snd_soc_write(codec, TAPAN_A_CDC_IIR1_GAIN_B1_CTL, value);
+		break;
+	default:
+		pr_err("%s: event = %d not expected\n", __func__, event);
+	}
+	return 0;
+}
+
 static const struct snd_soc_dapm_widget tapan_9306_dapm_widgets[] = {
 	/* RX4 MIX1 mux inputs */
 	SND_SOC_DAPM_MUX("RX4 MIX1 INP1", SND_SOC_NOPM, 0, 0,
@@ -4437,7 +4504,7 @@ static const struct snd_soc_dapm_widget tapan_common_dapm_widgets[] = {
 	SND_SOC_DAPM_MUX("RX3 MIX1 INP2", SND_SOC_NOPM, 0, 0,
 		&rx3_mix1_inp2_mux),
 	SND_SOC_DAPM_MUX("RX3 MIX1 INP3", SND_SOC_NOPM, 0, 0,
-		&rx3_mix1_inp2_mux),
+		&rx3_mix1_inp3_mux),
 
 	/* RX1 MIX2 mux inputs */
 	SND_SOC_DAPM_MUX("RX1 MIX2 INP1", SND_SOC_NOPM, 0, 0,
@@ -4675,7 +4742,9 @@ static const struct snd_soc_dapm_widget tapan_common_dapm_widgets[] = {
 
 	/* Sidetone */
 	SND_SOC_DAPM_MUX("IIR1 INP1 MUX", SND_SOC_NOPM, 0, 0, &iir1_inp1_mux),
-	SND_SOC_DAPM_PGA("IIR1", TAPAN_A_CDC_CLK_SD_CTL, 0, 0, NULL, 0),
+
+	SND_SOC_DAPM_PGA_E("IIR1", TAPAN_A_CDC_CLK_SD_CTL, 0, 0, NULL, 0,
+		tapan_codec_set_iir_gain, SND_SOC_DAPM_POST_PMU),
 
 	/* AUX PGA */
 	SND_SOC_DAPM_ADC_E("AUX_PGA_Left", NULL, TAPAN_A_RX_AUX_SW_CTL, 7, 0,
@@ -5516,7 +5585,10 @@ static int tapan_setup_zdet(struct wcd9xxx_mbhc *mbhc,
 				mux_wait_us + WCD9XXX_USLEEP_RANGE_MARGIN_US);
 		break;
 	case PA_DISABLE:
-		wcd9xxx_enable_static_pa(mbhc, false);
+		if (!mbhc->hph_pa_dac_state &&
+			(!(test_bit(MBHC_EVENT_PA_HPHL, &mbhc->event_state) ||
+			test_bit(MBHC_EVENT_PA_HPHR, &mbhc->event_state))))
+			wcd9xxx_enable_static_pa(mbhc, false);
 		wcd9xxx_restore_registers(codec, &tapan->reg_save_restore);
 		break;
 	}
