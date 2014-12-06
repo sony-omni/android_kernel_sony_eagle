@@ -428,6 +428,25 @@
 };
 
 &spmi_bus {
+       qcom,pm8226@0 {
+			qcom,charger {
+				qcom,vddmax-mv = <4210>;
+				qcom,vddsafe-mv = <4250>;
+				qcom,vinmin-mv = <4200>;
+				qcom,vbatdet-delta-mv = <50>;
+				qcom,thermal-mitigation = <1500 200 100 0>;
+				qcom,power-stage-reduced;
+				qcom,tchg-sdp-mins = <6000>;
+				qcom,tchg-dcp-mins = <360>;
+				qcom,warm-bat-decidegc = <450>;
+				qcom,ibatmax-warm-ma = <400>;
+				qcom,warm-bat-mv = <4000>;
+				qcom,cool-bat-decidegc = <50>;
+				qcom,ibatmax-cool-ma = <0>;
+				qcom,cool-bat-mv = <4000>;
+			};
+	};
+
 	qcom,pm8226@0 {
 		qcom,leds@a100 {
 			status = "okay";
@@ -456,10 +475,29 @@
 		};
 
 		qcom,power-on@800 {
+			interrupts = <0x0 0x8 0x0>,<0x0 0x8 0x1>;
+			interrupt-names = "kpdpwr", "resin";
+			/delete-property/ qcom,s3-debounce;
+
 			qcom,pon_2 {
 				linux,code = <115>;
+				/delete-property/ qcom,s1-timer;
+				/delete-property/ qcom,s2-timer;
+				/delete-property/ qcom,s2-type;
+				/delete-property/ qcom,support-reset;
+			};
+
+			qcom,pon_3 {
+				/delete-property/ qcom,pon-type;
+                        	/delete-property/ qcom,support-reset;
+	                        /delete-property/ qcom,pull-up;
+        	                /delete-property/ qcom,s1-timer;
+                	        /delete-property/ qcom,s2-timer;
+	                        /delete-property/ qcom,s2-type;
+        	                /delete-property/ qcom,use-bark;
 			};
 		};
+	
 
 		qcom,leds@a300 {
 			status = "okay";
