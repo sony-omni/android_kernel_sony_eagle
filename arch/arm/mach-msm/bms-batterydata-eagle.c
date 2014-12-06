@@ -12,6 +12,13 @@
 
 #include <linux/batterydata-lib.h>
 
+static char battery_cfg_FW_version[] = "0001";
+
+char * get_battery_cfg_version(void)
+{
+	return battery_cfg_FW_version;
+}
+
 static struct single_row_lut fcc_temp = {
 	.x		= {-20, 0, 25, 40, 60},
 	.y		= {2474, 2471, 2482, 2474, 2460},
