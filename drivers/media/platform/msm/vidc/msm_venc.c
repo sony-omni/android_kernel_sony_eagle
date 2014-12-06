@@ -716,7 +716,6 @@ static struct msm_vidc_ctrl msm_venc_ctrls[] = {
 		.maximum = 1,
 		.default_value = 0,
 		.step = 1,
-		.cluster = 0,
 	},
 	{
 		.id = V4L2_CID_MPEG_VIDC_VIDEO_LTRCOUNT,
