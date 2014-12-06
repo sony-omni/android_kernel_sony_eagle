@@ -427,6 +427,15 @@ static int lock_output_data(struct qpnp_bms_chip *chip)
 		pr_err("couldnt lock bms output rc = %d\n", rc);
 		return rc;
 	}
+	/*20140918 handle spmi failures in reading cc*/
+#ifdef CONFIG_MACH_SONY_EAGLE
+	/*
+	* Sleep for at least 60 microseconds here to make sure there has
+	* been at least two cycles of the sleep clock so that the registers
+	* are correctly locked.
+	*/
+	usleep_range(60, 2000);
+#endif
 	return 0;
 }
 
@@ -907,8 +916,30 @@ static int get_simultaneous_batt_v_and_i(struct qpnp_bms_chip *chip,
 	return 0;
 }
 
+#ifdef CONFIG_MACH_SONY_EAGLE
 static int get_rbatt(struct qpnp_bms_chip *chip,
 					int soc_rbatt_mohm, int batt_temp)
+{
+	int rbatt_mohm, scalefactor;
+
+	rbatt_mohm = chip->default_rbatt_mohm;
+ 	if (chip->rbatt_sf_lut == NULL) {
+ 		pr_debug("RBATT = %d\n", rbatt_mohm);
+ 		return rbatt_mohm;
+ 	}
+ 	/* Convert the batt_temp to DegC from deciDegC */
+ 	scalefactor = interpolate_scalingfactor(chip->rbatt_sf_lut,
+ 										batt_temp, soc_rbatt_mohm);
+	rbatt_mohm = (rbatt_mohm * scalefactor) / 100;
+
+	rbatt_mohm += chip->r_conn_mohm;
+ 	rbatt_mohm += chip->rbatt_capacitive_mohm;
+ 	return rbatt_mohm;
+}
+#endif
+
+#ifndef CONFIG_MACH_SONY_EAGLE
+static int estimate_ocv(struct qpnp_bms_chip *chip)
 {
 	int rbatt_mohm, scalefactor;
 
@@ -944,6 +975,29 @@ static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp)
 			ocv_est_uv, vbat_uv, ibat_ua, rbatt_mohm);
 	return ocv_est_uv;
 }
+#else
+#define DEFAULT_RBATT_SOC 50
+static int estimate_ocv(struct qpnp_bms_chip *chip, int batt_temp)
+{
+	int ibat_ua, vbat_uv, ocv_est_uv, rbatt_mohm, rc;
+
+	rbatt_mohm = get_rbatt(chip, DEFAULT_RBATT_SOC, batt_temp);
+
+	rc = get_simultaneous_batt_v_and_i(chip, &ibat_ua, &vbat_uv);
+	if (rc) {
+		pr_err("simultaneous failed rc = %d\n", rc);
+		return rc;
+	}
+
+	ocv_est_uv = vbat_uv + (ibat_ua * rbatt_mohm) / 1000;
+
+	pr_debug("estimated pon ocv = %d, vbat_uv = %d ibat_ua = %d rbatt_mohm = %d\n",
+					ocv_est_uv, vbat_uv, ibat_ua, rbatt_mohm);
+
+	return ocv_est_uv;
+
+}
+#endif
 
 #define MIN_IAVG_MA 250
 static void reset_for_new_battery(struct qpnp_bms_chip *chip, int batt_temp)
@@ -1049,13 +1103,21 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 	if (rc) {
 		pr_err("Error reading ocv: rc = %d\n", rc);
 		goto param_err;
+		goto param_err;
+#endif
 	}
 
 	rc = read_cc_raw(chip, &raw->cc, CC);
+#ifdef CONFIG_MACH_SONY_EAGLE
 	rc = read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
+#else
+	rc |= read_cc_raw(chip, &raw->shdw_cc, SHDW_CC);
+#endif
+
 	if (rc) {
 		pr_err("Failed to read raw cc data, rc = %d\n", rc);
 		goto param_err;
+#endif
 	}
 
 	unlock_output_data(chip);
@@ -1236,6 +1298,30 @@ static int calculate_cc(struct qpnp_bms_chip *chip, int64_t cc,
 		return *software_counter + cc_uah;
 	}
 }
+
+#ifndef CONFIG_MACH_SONY_EAGLE
+static int get_rbatt(struct qpnp_bms_chip *chip,
+					int soc_rbatt_mohm, int batt_temp)
+{
+	int rbatt_mohm, scalefactor;
+
+	rbatt_mohm = chip->default_rbatt_mohm;
+	if (chip->rbatt_sf_lut == NULL)  {
+		pr_debug("RBATT = %d\n", rbatt_mohm);
+		return rbatt_mohm;
+	}
+	/* Convert the batt_temp to DegC from deciDegC */
+	batt_temp = batt_temp / 10;
+	scalefactor = interpolate_scalingfactor(chip->rbatt_sf_lut,
+						batt_temp, soc_rbatt_mohm);
+	rbatt_mohm = (rbatt_mohm * scalefactor) / 100;
+
+	rbatt_mohm += chip->r_conn_mohm;
+	rbatt_mohm += chip->rbatt_capacitive_mohm;
+	return rbatt_mohm;
+}
+#endif
+/*[CCI] E- Bug#2723 SR patches Jonny_Chan*/
 
 #define IAVG_MINIMAL_TIME	2
 static void calculate_iavg(struct qpnp_bms_chip *chip, int cc_uah,
@@ -2205,12 +2291,15 @@ static int clamp_soc_based_on_voltage(struct qpnp_bms_chip *chip, int soc)
 		pr_err("adc vbat failed err = %d\n", rc);
 		return soc;
 	}
-
+#ifndef CONFIG_MACH_SONY_EAGLE
+	if (soc == 0 && vbat_uv > chip->v_cutoff_uv) {
+#else
 	/* only clamp when discharging */
 	if (is_battery_charging(chip))
 		return soc;
 
 	if (soc <= 0 && vbat_uv > chip->v_cutoff_uv) {
+#endif
 		pr_debug("clamping soc to 1, vbat (%d) > cutoff (%d)\n",
 						vbat_uv, chip->v_cutoff_uv);
 		return 1;
@@ -2423,6 +2512,10 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 	}
 	mutex_unlock(&chip->soc_invalidation_mutex);
 
+#ifndef CONFIG_MACH_SONY_EAGLE
+	pr_debug("SOC before adjustment = %d\n", soc);
+	new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
+#else
 	if (chip->first_time_calc_soc && !chip->shutdown_soc_invalid) {
 		pr_debug("Skip adjustment when shutdown SOC has been forced\n");
 		new_calculated_soc = soc;
@@ -2430,6 +2523,7 @@ static int calculate_state_of_charge(struct qpnp_bms_chip *chip,
 		pr_debug("SOC before adjustment = %d\n", soc);
 		new_calculated_soc = adjust_soc(chip, &params, soc, batt_temp);
 	}
+#endif
 
 	/* always clamp soc due to BMS hw/sw immaturities */
 	new_calculated_soc = clamp_soc_based_on_voltage(chip,
@@ -2544,7 +2638,16 @@ static int recalculate_raw_soc(struct qpnp_bms_chip *chip)
 			batt_temp = (int)result.physical;
 
 			mutex_lock(&chip->last_ocv_uv_mutex);
+#ifndef CONFIG_MACH_SONY_EAGLE
 			read_soc_params_raw(chip, &raw, batt_temp);
+#else
+			rc = read_soc_params_raw(chip, &raw, batt_temp);
+			if (rc) {
+				pr_err("Unable to read params, rc: %d\n", rc);
+				soc = 0;
+				goto done;
+			}
+#endif
 			calculate_soc_params(chip, &raw, &params, batt_temp);
 			if (!is_battery_present(chip)) {
 				pr_debug("battery gone\n");
@@ -2558,6 +2661,10 @@ static int recalculate_raw_soc(struct qpnp_bms_chip *chip)
 				soc = calculate_raw_soc(chip, &raw,
 							&params, batt_temp);
 			}
+/*20140918 handle spmi failures in reading cc*/
+#ifdef CONFIG_MACH_SONY_EAGLE
+done:
+#endif
 			mutex_unlock(&chip->last_ocv_uv_mutex);
 		}
 	}
@@ -2596,8 +2703,19 @@ static int recalculate_soc(struct qpnp_bms_chip *chip)
 			batt_temp = (int)result.physical;
 
 			mutex_lock(&chip->last_ocv_uv_mutex);
+#ifndef CONFIG_MACH_SONY_EAGLE
 			read_soc_params_raw(chip, &raw, batt_temp);
 			soc = calculate_state_of_charge(chip, &raw, batt_temp);
+#else
+			rc = read_soc_params_raw(chip, &raw, batt_temp);
+			if (rc) {
+				pr_err("Unable to read params, rc: %d\n", rc);
+				soc = chip->calculated_soc;
+			} else {
+				soc = calculate_state_of_charge(chip,
+						&raw, batt_temp);
+			}
+#endif
 			mutex_unlock(&chip->last_ocv_uv_mutex);
 		}
 	}
@@ -4165,7 +4283,14 @@ static int setup_die_temp_monitoring(struct qpnp_bms_chip *chip)
 	pr_debug("setup complete\n");
 	return 0;
 }
+/* [CCI] S- Bug# Jonny_Chan*/
+static char FuelGauge_drv_FW_version[] = "0001";
 
+char * get_FuelGauge_drv_version(void)
+{
+	return FuelGauge_drv_FW_version;
+}
+/* [CCI] E- Bug# Jonny_Chan*/
 static int __devinit qpnp_bms_probe(struct spmi_device *spmi)
 {
 	struct qpnp_bms_chip *chip;
