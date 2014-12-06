@@ -1104,7 +1104,6 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 		pr_err("Error reading ocv: rc = %d\n", rc);
 		goto param_err;
 		goto param_err;
-#endif
 	}
 
 	rc = read_cc_raw(chip, &raw->cc, CC);
@@ -1117,7 +1116,6 @@ static int read_soc_params_raw(struct qpnp_bms_chip *chip,
 	if (rc) {
 		pr_err("Failed to read raw cc data, rc = %d\n", rc);
 		goto param_err;
-#endif
 	}
 
 	unlock_output_data(chip);
