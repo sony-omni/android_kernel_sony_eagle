@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * Previously licensed under the ISC license by Qualcomm Atheros, Inc.
  *
@@ -85,7 +85,6 @@
 #include "wlan_hdd_cfg80211.h"
 
 #include "sapApi.h"
-#include "vos_trace.h"
 
 
 
@@ -171,13 +170,6 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
    vos_mem_zero(gpVosContext, sizeof(VosContextType));
 
    *pVosContext = gpVosContext;
-
-   /* Initialize the spinlock */
-   vos_trace_spin_lock_init();
-   /* it is the right time to initialize MTRACE structures */
-   #if defined(TRACE_RECORD)
-       vosTraceInit();
-   #endif
 
    return VOS_STATUS_SUCCESS;
 
@@ -277,7 +269,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    /* Initialize the timer module */
    vos_timer_module_init();
-
 
    /* Initialize the probe event */
    if (vos_event_init(&gpVosContext->ProbeEvent) != VOS_STATUS_SUCCESS)
@@ -574,7 +565,7 @@ VOS_STATUS vos_preStart( v_CONTEXT_t vosContext )
       if ( vStatus == VOS_STATUS_E_TIMEOUT )
       {
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-          "%s: Timeout occurred before WDA complete", __func__);
+          "%s: Timeout occurred before WDA complete\n", __func__);
       }
       else
       {
@@ -1776,11 +1767,6 @@ VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
        pTargetMq = &(gpVosContext->vosSched.wdiRxMq);
        break;
     }
-    case VOS_MQ_ID_TL:
-    {
-       pTargetMq = &(gpVosContext->vosSched.tlRxMq);
-       break;
-    }
 
     default:
 
@@ -1966,7 +1952,7 @@ void vos_abort_mac_scan(void)
        return;
     }
 
-    hdd_abort_mac_scan(pHddCtx, eCSR_SCAN_ABORT_DEFAULT);
+    hdd_abort_mac_scan(pHddCtx);
     return;
 }
 
