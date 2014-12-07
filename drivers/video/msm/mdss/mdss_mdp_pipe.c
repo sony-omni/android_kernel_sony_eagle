@@ -940,6 +940,9 @@ static int mdss_mdp_image_setup(struct mdss_mdp_pipe *pipe,
 			dst_xy = (pipe->dst.y << 16) | pipe->dst.x;
 	} else
 #endif
+
+        dst_xy = (dst.y << 16) | dst.x;
+
 #ifndef CONFIG_MACH_SONY_EAGLE
 	dst_xy = (dst.y << 16) | dst.x;
 #else

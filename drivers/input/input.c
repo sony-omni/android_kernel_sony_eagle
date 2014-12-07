@@ -600,7 +600,7 @@ static void input_dev_release_keys(struct input_dev *dev)
 #else
 			/*Bypass camrea snapshot and focus event*/
 			if (is_event_supported(code, dev->keybit, KEY_MAX) &&
-				__test_and_clear_bit(code, dev->key)&& (code!=528 && code!=766)) {
+			    __test_and_clear_bit(code, dev->key)&& (code!=528 && code!=766)) {
 				input_pass_event(dev, EV_KEY, code, 0);
 #endif
 			}
@@ -1871,11 +1871,12 @@ int input_register_device(struct input_dev *dev)
 		dev_set_name(&dev->dev, "input1");
 	}
 	else{
-#endif
 		dev_set_name(&dev->dev, "input%ld",
-			(unsigned long) atomic_inc_return(&input_no) - 1);
-#ifdef CONFIG_MACH_SONY_EAGLE
+			     (unsigned long) atomic_inc_return(&input_no) - 1);
 	}
+#else
+                dev_set_name(&dev->dev, "input%ld",
+                             (unsigned long) atomic_inc_return(&input_no) - 1);
 #endif
 
 	error = device_add(&dev->dev);
