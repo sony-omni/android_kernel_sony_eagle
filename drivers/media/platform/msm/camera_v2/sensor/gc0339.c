@@ -27,7 +27,6 @@ DEFINE_MSM_MUTEX(gc0339_mut);
 #define CDBG(fmt, args...) do { } while (0)
 #endif
 
-
 static struct msm_sensor_ctrl_t gc0339_s_ctrl;
 
 static struct msm_sensor_power_setting gc0339_power_setting[] = {

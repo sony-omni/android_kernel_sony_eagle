@@ -909,7 +909,6 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 	int rc = 0;
 	int j = 0;
 	uint32_t temp;
-
 	struct msm_camera_cci_client *cci_client = NULL;
 	struct msm_eeprom_ctrl_t *e_ctrl = NULL;
 	struct msm_eeprom_board_info *eb_info = NULL;
@@ -1030,7 +1029,6 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 	for (j = 0; j < e_ctrl->cal_data.num_data; j++)
 		CDBG("memory_data[%d] = 0x%X\n", j,
 		     e_ctrl->cal_data.mapdata[j]);
-
 	e_ctrl->is_supported |= msm_eeprom_match_crc(&e_ctrl->cal_data);
 
 	rc = msm_camera_power_down(power_info, e_ctrl->eeprom_device_type,
