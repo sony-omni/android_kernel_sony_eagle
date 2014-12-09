@@ -1298,7 +1298,9 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	memset(&vfe_dev->stats_data, 0,
 		sizeof(struct msm_vfe_stats_shared_data));
 	memset(&vfe_dev->error_info, 0, sizeof(vfe_dev->error_info));
+#ifndef CONFIG_MACH_SONY_EAGLE
 	vfe_dev->axi_data.hw_info = vfe_dev->hw_info->axi_hw_info;
+#endif
 	vfe_dev->vfe_open_cnt++;
 	vfe_dev->taskletq_idx = 0;
 	vfe_dev->vt_enable = 0;
