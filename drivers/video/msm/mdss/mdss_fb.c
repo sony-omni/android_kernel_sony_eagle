@@ -548,10 +548,12 @@ static int mdss_fb_probe(struct platform_device *pdev)
 		break;
 	}
 
+#ifdef CONFIG_FB_MSM_MDSS_PANEL_SPECIFIC
 #ifdef CONFIG_DEBUG_FS
 	if ((mfd->panel_info->type == MIPI_VIDEO_PANEL) ||
 		(mfd->panel_info->type == MIPI_CMD_PANEL))
 		mipi_dsi_panel_create_debugfs(mfd);
+#endif
 #endif
 
 #ifdef CONFIG_FB_MSM_MDSS_PANEL_SPECIFIC
@@ -612,10 +614,12 @@ static int mdss_fb_remove(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
+#ifdef CONFIG_FB_MSM_MDSS_PANEL_SPECIFIC
 #ifdef CONFIG_DEBUG_FS
 	if ((mfd->panel_info->type == MIPI_VIDEO_PANEL) ||
 		(mfd->panel_info->type == MIPI_CMD_PANEL))
 		mipi_dsi_panel_remove_debugfs(mfd);
+#endif
 #endif
 
 	if (mdss_fb_suspend_sub(mfd))
