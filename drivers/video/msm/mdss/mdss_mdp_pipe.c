@@ -894,7 +894,20 @@ static int mdss_mdp_image_setup(struct mdss_mdp_pipe *pipe,
 			dst_xy = (pipe->dst.y << 16) | pipe->dst.x;
 	} else
 #endif
+
+#ifndef CONFIG_MACH_SONY_EAGLE
 	dst_xy = (dst.y << 16) | dst.x;
+#else
+  if(pipe->mfd)
+  {
+    dst_xy = (((960- dst.y - dst.h) << 16) |
+    (540- dst.x - dst.w));
+  }
+  else
+  {
+    dst_xy = (dst.y << 16) | dst.x;
+  }
+#endif
 
 	ystride0 =  (pipe->src_planes.ystride[0]) |
 			(pipe->src_planes.ystride[1] << 16);
@@ -957,6 +970,20 @@ static int mdss_mdp_format_setup(struct mdss_mdp_pipe *pipe)
 		opmode |= MDSS_MDP_OP_FLIP_LR;
 	if (pipe->flags & MDP_FLIP_UD)
 		opmode |= MDSS_MDP_OP_FLIP_UD;
+#ifdef CONFIG_MACH_SONY_EAGLE
+  if(pipe->mfd)
+  {
+    if(opmode & MDSS_MDP_OP_FLIP_LR)
+      opmode &= ~MDSS_MDP_OP_FLIP_LR; 
+    else
+      opmode |= MDSS_MDP_OP_FLIP_LR; 
+
+    if(opmode & MDSS_MDP_OP_FLIP_UD)
+      opmode &= ~MDSS_MDP_OP_FLIP_UD; 
+    else
+      opmode |= MDSS_MDP_OP_FLIP_UD; 
+  }
+#endif
 
 	pr_debug("pnum=%d format=%d opmode=%x\n", pipe->num, fmt->format,
 			opmode);
