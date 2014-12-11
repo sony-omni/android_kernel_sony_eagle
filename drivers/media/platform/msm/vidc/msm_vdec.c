@@ -213,7 +213,7 @@ static struct msm_vidc_ctrl msm_vdec_ctrls[] = {
 		.type = V4L2_CTRL_TYPE_MENU,
 		.minimum = V4L2_MPEG_VIDC_EXTRADATA_NONE,
 		.maximum = V4L2_MPEG_VIDC_EXTRADATA_FRAME_BITS_INFO,
-		.default_value = V4L2_MPEG_VIDC_EXTRADATA_NONE,
+		.default_value = V4L2_MPEG_VIDC_EXTRADATA_STREAM_USERDATA,
 		.menu_skip_mask = ~(
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_NONE) |
 			(1 << V4L2_MPEG_VIDC_EXTRADATA_MB_QUANTIZATION) |
