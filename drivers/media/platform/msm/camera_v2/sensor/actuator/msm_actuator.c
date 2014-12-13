@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -113,7 +113,11 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 					i2c_byte2 = (value & 0xFF00) >> 8;
 				}
 			} else {
-				i2c_byte1 = (value & 0xFF00) >> 8;
+#ifdef CONFIG_MACH_SONY_EAGLE
+					i2c_byte1 = ((value & 0x0300) >> 8) | 0xF4;
+#else
+					i2c_byte1 = (value & 0xFF00) >> 8;
+#endif
 				i2c_byte2 = value & 0xFF;
 			}
 		} else {
@@ -131,61 +135,36 @@ static void msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 }
 
 static int32_t msm_actuator_init_focus(struct msm_actuator_ctrl_t *a_ctrl,
-	uint16_t size, struct reg_settings_t *settings)
+	uint16_t size, enum msm_actuator_data_type type,
+	struct reg_settings_t *settings)
 {
 	int32_t rc = -EFAULT;
 	int32_t i = 0;
-	enum msm_camera_i2c_reg_addr_type save_addr_type;
 	CDBG("Enter\n");
 
-	save_addr_type = a_ctrl->i2c_client.addr_type;
 	for (i = 0; i < size; i++) {
-
-		switch (settings[i].addr_type) {
-		case MSM_ACTUATOR_BYTE_ADDR:
-			a_ctrl->i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
-			break;
-		case MSM_ACTUATOR_WORD_ADDR:
-			a_ctrl->i2c_client.addr_type = MSM_CAMERA_I2C_WORD_ADDR;
-			break;
-		default:
-			pr_err("Unsupport addr type: %d\n",
-				settings[i].addr_type);
-			break;
-		}
-
-		switch (settings[i].i2c_operation) {
-		case MSM_ACT_WRITE:
+		switch (type) {
+		case MSM_ACTUATOR_BYTE_DATA:
 			rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
 				&a_ctrl->i2c_client,
 				settings[i].reg_addr,
-				settings[i].reg_data,
-				settings[i].data_type);
+				settings[i].reg_data, MSM_CAMERA_I2C_BYTE_DATA);
 			break;
-		case MSM_ACT_POLL:
-			rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_poll(
+		case MSM_ACTUATOR_WORD_DATA:
+			rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
 				&a_ctrl->i2c_client,
 				settings[i].reg_addr,
-				settings[i].reg_data,
-				settings[i].data_type);
+				settings[i].reg_data, MSM_CAMERA_I2C_WORD_DATA);
 			break;
 		default:
-			pr_err("Unsupport i2c_operation: %d\n",
-				settings[i].i2c_operation);
-			break;
-
-		if (0 != settings[i].delay)
-			msleep(settings[i].delay);
-
-		if (rc < 0)
+			pr_err("Unsupport data type: %d\n", type);
 			break;
 		}
+		if (rc < 0)
+			break;
 	}
 
 	a_ctrl->curr_step_pos = 0;
-	/* recover register addr_type after the init
-	settings are written  */
-	a_ctrl->i2c_client.addr_type = save_addr_type;
 	CDBG("Exit\n");
 	return rc;
 }
@@ -305,11 +284,13 @@ static int32_t msm_actuator_move_focus(
 
 	if ((sign_dir > MSM_ACTUATOR_MOVE_SIGNED_NEAR) ||
 		(sign_dir < MSM_ACTUATOR_MOVE_SIGNED_FAR)) {
-		pr_err("Invalid sign_dir = %d\n", sign_dir);
+		pr_err("%s:%d Invalid sign_dir = %d\n",
+		__func__, __LINE__, sign_dir);
 		return -EFAULT;
 	}
 	if ((dir > MOVE_FAR) || (dir < MOVE_NEAR)) {
-		pr_err("Invalid direction = %d\n", dir);
+		pr_err("%s:%d Invalid direction = %d\n",
+		__func__, __LINE__, dir);
 		return -EFAULT;
 	}
 	if (dest_step_pos > a_ctrl->total_steps) {
@@ -393,8 +374,8 @@ static int32_t msm_actuator_init_step_table(struct msm_actuator_ctrl_t *a_ctrl,
 
 	if (set_info->af_tuning_params.total_steps
 		>  MAX_ACTUATOR_AF_TOTAL_STEPS) {
-		pr_err("Max actuator totalsteps exceeded = %d\n",
-		set_info->af_tuning_params.total_steps);
+		pr_err("%s: Max actuator totalsteps exceeded = %d\n",
+		__func__, set_info->af_tuning_params.total_steps);
 		return -EFAULT;
 	}
 	/* Fill step position table */
@@ -568,8 +549,8 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 	}
 	if (set_info->af_tuning_params.total_steps
 		>  MAX_ACTUATOR_AF_TOTAL_STEPS) {
-		pr_err("Max actuator totalsteps exceeded = %d\n",
-		set_info->af_tuning_params.total_steps);
+		pr_err("%s: Max actuator totalsteps exceeded = %d\n",
+		__func__, set_info->af_tuning_params.total_steps);
 		return -EFAULT;
 	}
 	if (set_info->af_tuning_params.region_size
@@ -654,6 +635,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 			}
 			rc = a_ctrl->func_tbl->actuator_init_focus(a_ctrl,
 				set_info->actuator_params.init_setting_size,
+				a_ctrl->i2c_data_type,
 				init_settings);
 			kfree(init_settings);
 			init_settings = NULL;
@@ -761,7 +743,6 @@ static struct msm_camera_i2c_fn_t msm_sensor_cci_func_tbl = {
 	.i2c_write_table_w_microdelay =
 		msm_camera_cci_i2c_write_table_w_microdelay,
 	.i2c_util = msm_sensor_cci_i2c_util,
-	.i2c_poll =  msm_camera_cci_i2c_poll,
 };
 
 static struct msm_camera_i2c_fn_t msm_sensor_qup_func_tbl = {
@@ -772,7 +753,6 @@ static struct msm_camera_i2c_fn_t msm_sensor_qup_func_tbl = {
 	.i2c_write_seq_table = msm_camera_qup_i2c_write_seq_table,
 	.i2c_write_table_w_microdelay =
 		msm_camera_qup_i2c_write_table_w_microdelay,
-	.i2c_poll = msm_camera_qup_i2c_poll,
 };
 
 static int msm_actuator_open(struct v4l2_subdev *sd,
@@ -798,11 +778,25 @@ static int msm_actuator_close(struct v4l2_subdev *sd,
 	struct v4l2_subdev_fh *fh) {
 	int rc = 0;
 	struct msm_actuator_ctrl_t *a_ctrl =  v4l2_get_subdevdata(sd);
+#ifdef CONFIG_MACH_SONY_EAGLE
+    int rc2 = 0;
+#endif
 	CDBG("Enter\n");
 	if (!a_ctrl) {
 		pr_err("failed\n");
 		return -EINVAL;
 	}
+#ifdef CONFIG_MACH_SONY_EAGLE
+	CDBG("back to DAC 0x0000!\n");
+	rc2 = a_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+		&a_ctrl->i2c_client,
+		0x00,
+		0x00,
+		MSM_CAMERA_I2C_BYTE_DATA);
+	if (rc2 < 0) {
+		pr_err("i2c write error:%d\n", rc);
+	}
+#endif
 	if (a_ctrl->act_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
 		rc = a_ctrl->i2c_client.i2c_func_tbl->i2c_util(
 			&a_ctrl->i2c_client, MSM_CCI_RELEASE);

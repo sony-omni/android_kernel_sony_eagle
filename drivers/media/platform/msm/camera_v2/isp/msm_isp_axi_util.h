@@ -36,7 +36,6 @@ void msm_isp_axi_reserve_comp_mask(
 int msm_isp_axi_check_stream_state(
 	struct vfe_device *vfe_dev,
 	struct msm_vfe_axi_stream_cfg_cmd *stream_cfg_cmd);
-
 void msm_isp_calculate_framedrop(
 		struct msm_vfe_axi_shared_data *axi_data,
 		struct msm_vfe_axi_stream_request_cmd *stream_cfg_cmd);
@@ -50,6 +49,7 @@ void msm_isp_axi_cfg_update(struct vfe_device *vfe_dev);
 void msm_isp_axi_stream_update(struct vfe_device *vfe_dev);
 
 void msm_isp_update_framedrop_reg(struct vfe_device *vfe_dev);
+void msm_isp_update_framedrop_rdi_reg(struct vfe_device *vfe_dev, int flag);
 void msm_isp_sof_notify(struct vfe_device *vfe_dev,
 	enum msm_vfe_input_src frame_src, struct msm_isp_timestamp *ts);
 void msm_isp_process_axi_irq(struct vfe_device *vfe_dev,

@@ -19,7 +19,7 @@
 #include <linux/io.h>
 #include <linux/list.h>
 #include <linux/delay.h>
-#include <linux/avtimer_kernel.h>
+#include <linux/avtimer.h>
 #include <media/v4l2-subdev.h>
 #include <media/msmb_isp.h>
 #include <mach/msm_bus.h>
@@ -67,7 +67,12 @@ enum msm_isp_camif_update_state {
 	NO_UPDATE,
 	ENABLE_CAMIF,
 	DISABLE_CAMIF,
+#ifndef CONFIG_MACH_SONY_EAGLE
 	DISABLE_CAMIF_IMMEDIATELY
+#else
+	DISABLE_CAMIF_IMMEDIATELY,
+	DISABLE_CAMIF_IMMEDIATELY_VFE_RECOVER
+#endif
 };
 
 enum msm_isp_reset_type {
