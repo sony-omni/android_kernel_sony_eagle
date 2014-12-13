@@ -58,12 +58,7 @@ static struct msm_sensor_power_setting imx134_power_setting[] = {
 		.delay = 0,
 	},
 #endif
-	{
-		.seq_type = SENSOR_VREG,
-		.seq_val = CAM_VAF,
-		.config_val = 0,
-		.delay = 0,
-	},
+
 #ifdef CONFIG_MACH_SONY_EAGLE
 	{
 		.seq_type = SENSOR_CLK,
@@ -72,6 +67,12 @@ static struct msm_sensor_power_setting imx134_power_setting[] = {
 		.delay = 1,
 	},
 #endif
+	{
+		.seq_type = SENSOR_VREG,
+		.seq_val = CAM_VAF,
+		.config_val = 0,
+		.delay = 0,
+	},
 	{
 		.seq_type = SENSOR_GPIO,
 #ifdef CONFIG_MACH_SONY_EAGLE
