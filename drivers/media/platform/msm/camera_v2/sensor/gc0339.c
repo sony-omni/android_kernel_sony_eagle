@@ -26,14 +26,12 @@ DEFINE_MSM_MUTEX(gc0339_mut);
 #else
 #define CDBG(fmt, args...) do { } while (0)
 #endif
-
+static struct msm_sensor_ctrl_t gc0339_s_ctrl;
 #ifdef CONFIG_MACH_SONY_EAGLE
 static struct msm_sensor_ctrl_t gc0339_power_on;
 static struct msm_sensor_ctrl_t gc0339_power_off;
 int checksubcam_ID = 0;
 #endif
-
-static struct msm_sensor_ctrl_t gc0339_s_ctrl;
 
 static struct msm_sensor_power_setting gc0339_power_setting[] = {
 
@@ -88,6 +86,7 @@ static struct msm_sensor_power_setting gc0339_power_setting[] = {
 };
 
 #ifdef CONFIG_MACH_SONY_EAGLE
+/*[VY52] VinceT, [Bug#171], S, Sub camera Dual power squence*/
 static struct msm_sensor_power_setting gc0339_power_on_setting[] = {
 		{//1.PDN "L"
 			.seq_type = SENSOR_GPIO,
@@ -232,8 +231,7 @@ int32_t gc0339_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 #else
 	power_setting_array = &s_ctrl->power_setting_array;
 #endif
-
-	if (gpio_conf->cam_gpiomux_conf_tbl != NULL) {
+        if (gpio_conf->cam_gpiomux_conf_tbl != NULL) {
 		pr_err("%s:%d mux install\n", __func__, __LINE__);
 		msm_gpiomux_install(
 			(struct msm_gpiomux_config *)
@@ -398,9 +396,8 @@ power_up_failed:
 int32_t gc0339_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t index = 0;
-#ifdef CONFIG_MACH_SONY_EAGLE
+
 	int32_t gpiotestnum = 0;
-#endif
 	struct msm_sensor_power_setting_array *power_setting_array = NULL;
 	struct msm_sensor_power_setting *power_setting = NULL;
 	struct msm_camera_sensor_board_info *data = s_ctrl->sensordata;
@@ -413,16 +410,22 @@ int32_t gc0339_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 #else
 	power_setting_array = &s_ctrl->power_setting_array;
 #endif
-
-	if (s_ctrl->sensor_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
-		s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_util(
-			s_ctrl->sensor_i2c_client, MSM_CCI_RELEASE);
-	}
-
+#ifdef CONFIG_MACH_SONY_EAGLE
 	s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(
 		s_ctrl->sensor_i2c_client,
 		0xfc,
 		0x01, MSM_CAMERA_I2C_BYTE_DATA);
+#endif
+	if (s_ctrl->sensor_device_type == MSM_CAMERA_PLATFORM_DEVICE) {
+		s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_util(
+			s_ctrl->sensor_i2c_client, MSM_CCI_RELEASE);
+	}
+#ifndef CONFIG_MACH_SONY_EAGLE
+	s_ctrl->sensor_i2c_client->i2c_func_tbl->i2c_write(
+		s_ctrl->sensor_i2c_client,
+		0xfc,
+		0x01, MSM_CAMERA_I2C_BYTE_DATA);
+#endif
 
 	for (index = (power_setting_array->size - 1); index >= 0; index--) {
 		CDBG("%s index %d\n", __func__, index);
@@ -487,13 +490,14 @@ int32_t gc0339_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 				&power_info->cam_vreg[power_setting->seq_val],
 				(struct regulator **)&gc0339_power_on.power_setting_array.power_setting[index].data[0],
 				0);
+			break;
 #else
 			msm_camera_config_single_vreg(power_info->dev,
 				&power_info->cam_vreg[power_setting->seq_val],
 				(struct regulator **)&power_setting->data[0],
 				0);
-#endif
 			break;
+#endif
 		default:
 			pr_err("%s error power seq type %d\n", __func__,
 				power_setting->seq_type);
@@ -531,36 +535,37 @@ int32_t gc0339_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("%s: %s: read id failed\n", __func__,
 			s_ctrl->sensordata->sensor_name);
 		return rc;
-#ifdef CONFIG_MACH_SONY_EAGLE
-		if(checksubcam_ID == 0) {
-			if(strcmp("SKUAA_ST_gc0339",s_ctrl->sensordata->sensor_name)==0) {
-			ret1 = gpio_request(camID_GPIO, NULL);
-				if (ret1) {
-				pr_err("%s: Failed to request gpio %d\n", __func__,
-			   						camID_GPIO);
-			}
-			gpio_direction_input(camID_GPIO);
-			subcamID = gpio_get_value(camID_GPIO);
-			pr_err("%s:[Camera] sub camera ID pin value: %d\n", __func__,
-									subcamID);
-			if( subcamID == 0) {//main source
-				s_ctrl->sensordata->sensor_name = "SKUAA_ST_gc0339";
-			}
-			else if (subcamID == 1) {//second source
-				s_ctrl->sensordata->sensor_name = "SKUAA_ST_gc0339sec";
-			}
-			else {
-				pr_err("%s:[Error] sub camera ID pin value is wrong! value=%d\n", __func__,
-									subcamID);
-				}
-			pr_err("%s:[Camera] sub camera sensor-name change to: %s\n", __func__,
-				s_ctrl->sensordata->sensor_name);
-			gpio_free(camID_GPIO);
-			}
-			checksubcam_ID = checksubcam_ID+1;
-		}
-#endif
 	}
+
+#ifdef CONFIG_MACH_SONY_EAGLE
+	if(checksubcam_ID == 0) {
+	if(strcmp("SKUAA_ST_gc0339",s_ctrl->sensordata->sensor_name)==0) {
+		ret1 = gpio_request(camID_GPIO, NULL);
+		if (ret1) {
+		pr_err("%s: Failed to request gpio %d\n", __func__,
+			   camID_GPIO);
+		}
+		gpio_direction_input(camID_GPIO);
+		subcamID = gpio_get_value(camID_GPIO);
+		pr_err("%s:[Camera] sub camera ID pin value: %d\n", __func__,
+			subcamID);
+		if( subcamID == 0) {//main source
+			s_ctrl->sensordata->sensor_name = "SKUAA_ST_gc0339";
+		}
+		else if (subcamID == 1) {//second source
+			s_ctrl->sensordata->sensor_name = "SKUAA_ST_gc0339sec";
+		}
+		else {
+			pr_err("%s:[Error] sub camera ID pin value is wrong! value=%d\n", __func__,
+				subcamID);
+		}
+		pr_err("%s:[Camera] sub camera sensor-name change to: %s\n", __func__,
+			s_ctrl->sensordata->sensor_name);
+		gpio_free(camID_GPIO);
+	}
+		checksubcam_ID = checksubcam_ID+1;
+	}
+#endif
 
 	if (chipid != s_ctrl->sensordata->slave_info->sensor_id) {
 		pr_err("msm_sensor_match_id chip id doesnot match\n");
@@ -830,14 +835,12 @@ static struct msm_sensor_ctrl_t gc0339_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(gc0339_subdev_info),
 	.func_tbl = &gc0339_sensor_fn_t,
 };
-
 #ifdef CONFIG_MACH_SONY_EAGLE
 static struct msm_sensor_ctrl_t gc0339_power_on =
 {
 	.power_setting_array.power_setting = gc0339_power_on_setting,
 	.power_setting_array.size = ARRAY_SIZE(gc0339_power_on_setting),
 };
-
 static struct msm_sensor_ctrl_t gc0339_power_off =
 {
 	.power_setting_array.power_setting = gc0339_power_off_setting,

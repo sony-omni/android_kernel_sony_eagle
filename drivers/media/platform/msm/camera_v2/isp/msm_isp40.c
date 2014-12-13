@@ -945,8 +945,8 @@ static void msm_vfe40_update_camif_state(struct vfe_device *vfe_dev,
 		/*disable image data capture immediately*/
 		msm_camera_io_w_mb(0x2, vfe_dev->vfe_base + 0x2F4);
 		vfe_dev->axi_data.src_info[VFE_PIX_0].active = 0;
-#endif
 	}
+#endif
 }
 
 static void msm_vfe40_cfg_rdi_reg(
