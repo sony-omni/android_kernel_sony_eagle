@@ -251,10 +251,14 @@ static int32_t msm_cci_data_queue(struct cci_device *cci_dev,
 					break;
 			}
 			i2c_cmd++;
+<<<<<<< HEAD
 			--cmd_size;
 		} while ((c_ctrl->cmd == MSM_CCI_I2C_WRITE_SEQ) &&
 				(cmd_size > 0) && (i <= 10));
 
+=======
+		} while (--cmd_size && !i2c_cmd->reg_addr && (i <= 10));
+>>>>>>> re-port camera from stock
 		data[0] |= ((i-1) << 4);
 		len = ((i-1)/4) + 1;
 		rc = msm_cci_validate_queue(cci_dev, len, master, queue);

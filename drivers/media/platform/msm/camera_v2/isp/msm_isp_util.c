@@ -25,8 +25,8 @@
 static DEFINE_MUTEX(bandwidth_mgr_mutex);
 static struct msm_isp_bandwidth_mgr isp_bandwidth_mgr;
 
-#define MSM_ISP_MIN_AB 300000000
-#define MSM_ISP_MIN_IB 450000000
+#define MSM_ISP_MIN_AB 450000000
+#define MSM_ISP_MIN_IB 900000000
 
 #define VFE40_8974V2_VERSION 0x1001001A
 static struct msm_bus_vectors msm_isp_init_vectors[] = {
@@ -659,9 +659,9 @@ static int msm_isp_send_hw_cmd(struct vfe_device *vfe_dev,
 				*cfg_data);
 			ISP_DBG("hw update across frame boundary,end id %lu\n",
 				vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id);
-		}
-		vfe_dev->axi_data.src_info[VFE_PIX_0].last_updt_frm_id =
+			vfe_dev->axi_data.src_info[VFE_PIX_0].last_updt_frm_id =
 			vfe_dev->axi_data.src_info[VFE_PIX_0].frame_id;
+		}
 		break;
 	}
 	case VFE_READ: {
@@ -838,12 +838,6 @@ int msm_isp_cal_word_per_line(uint32_t output_format,
 	case V4L2_PIX_FMT_NV16:
 	case V4L2_PIX_FMT_NV61:
 		val = CAL_WORD(pixel_per_line, 1, 8);
-		break;
-	case V4L2_PIX_FMT_YUYV:
-	case V4L2_PIX_FMT_YVYU:
-	case V4L2_PIX_FMT_UYVY:
-	case V4L2_PIX_FMT_VYUY:
-		val = CAL_WORD(pixel_per_line, 2, 8);
 		break;
 		/*TD: Add more image format*/
 	default:
@@ -1160,8 +1154,7 @@ irqreturn_t msm_isp_process_irq(int irq_num, void *data)
 	error_mask1 &= irq_status1;
 	irq_status0 &= ~error_mask0;
 	irq_status1 &= ~error_mask1;
-	if (!vfe_dev->ignore_error &&
-		((error_mask0 != 0) || (error_mask1 != 0)))
+	if ((error_mask0 != 0) || (error_mask1 != 0))
 		msm_isp_update_error_info(vfe_dev, error_mask0, error_mask1);
 
 	if ((irq_status0 == 0) && (irq_status1 == 0) &&
@@ -1220,7 +1213,7 @@ void msm_isp_do_tasklet(unsigned long data)
 		spin_unlock_irqrestore(&vfe_dev->tasklet_lock, flags);
 		if (atomic_read(&vfe_dev->error_info.overflow_state) !=
 			NO_OVERFLOW) {
-			pr_err_ratelimited("There is Overflow, kicking up recovery !!!!");
+			pr_err("There is Overflow, kicking up recovery !!!!");
 			msm_isp_process_overflow_recovery(vfe_dev,
 				irq_status0, irq_status1);
 			continue;
@@ -1304,7 +1297,9 @@ int msm_isp_open_node(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	memset(&vfe_dev->axi_data, 0, sizeof(struct msm_vfe_axi_shared_data));
 	memset(&vfe_dev->stats_data, 0,
 		sizeof(struct msm_vfe_stats_shared_data));
+#ifndef CONFIG_MACH_SONY_EAGLE
 	memset(&vfe_dev->error_info, 0, sizeof(vfe_dev->error_info));
+#endif
 	vfe_dev->axi_data.hw_info = vfe_dev->hw_info->axi_hw_info;
 	vfe_dev->vfe_open_cnt++;
 	vfe_dev->taskletq_idx = 0;
