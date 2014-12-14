@@ -289,9 +289,6 @@ struct msm_vfe_axi_stream {
 	enum msm_vfe_axi_stream_type stream_type;
 	uint32_t vt_enable;
 	uint32_t frame_based;
-#ifdef CONFIG_MACH_SONY_EAGLE
-	enum msm_vfe_frame_skip_pattern frame_skip_pattern; /*QCT patch 20140627 add*/
-#endif
 	uint32_t framedrop_period;
 	uint32_t framedrop_pattern;
 	uint32_t num_burst_capture;/*number of frame to capture*/
@@ -418,14 +415,6 @@ struct msm_vfe_tasklet_queue_cmd {
 };
 
 #define MSM_VFE_TASKLETQ_SIZE 200
-#ifdef CONFIG_MACH_SONY_EAGLE
-enum msm_vfe_overflow_state {
-	NO_OVERFLOW,
-	OVERFLOW_DETECTED,
-	HALT_REQUESTED,
-	RESTART_REQUESTED,
-};
-#endif
 
 struct msm_vfe_error_info {
 	atomic_t overflow_state;

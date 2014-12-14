@@ -494,9 +494,6 @@ int msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 	struct msm_camera_i2c_client *sensor_i2c_client;
 	struct msm_camera_slave_info *slave_info;
 	const char *sensor_name;
-#ifdef CONFIG_MACH_SONY_EAGLE
-	int32_t gpiotestnum = 0;
-#endif
 
 	if (!s_ctrl) {
 		pr_err("%s:%d failed: %p\n",
@@ -512,15 +509,8 @@ int msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 			__func__, __LINE__, sensor_i2c_client, slave_info,
 			sensor_name);
 		return -EINVAL;
-#ifdef CONFIG_MACH_SONY_EAGLE
-			gpiotestnum = gpio_conf->gpio_num_info->gpio_num
-					[power_setting->seq_val];
-			if((gpiotestnum == 69) && (gpio69_count == 2)){
-				CDBG("[VY5X][CTS]Avoid sub camera preview fail in CTS\n");
-			}
 	}
-
-	rc = sensor_i2c_client->i2c_func_tbl->i2c_read(
+		rc = sensor_i2c_client->i2c_func_tbl->i2c_read(
 		sensor_i2c_client, slave_info->sensor_id_reg_addr,
 		&chipid, MSM_CAMERA_I2C_WORD_DATA);
 	if (rc < 0) {
@@ -1347,7 +1337,7 @@ int32_t msm_sensor_platform_probe(struct platform_device *pdev, void *data)
 #ifdef CONFIG_MACH_SONY_EAGLE
   CDBG("[Vince Debug] Pin Function create Function Enter\t%s:%d\n", __func__, __LINE__);
   {
-      if(device_create_file(s_ctrl->dev, &dev_attr_CheckCameraID))
+      if(device_create_file(&(pdev->dev), &dev_attr_CheckCameraID))
       {
           pr_err("[Vince Debug] Ping Function create fail!!\t%s:%d\n", __func__, __LINE__);
       }
