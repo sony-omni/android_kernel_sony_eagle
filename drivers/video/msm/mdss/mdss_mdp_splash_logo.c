@@ -29,6 +29,7 @@
 #define INVALID_PIPE_INDEX 0xFFFF
 #define MAX_FRAME_DONE_COUNT_WAIT 2
 
+#ifndef CONFIG_MACH_SONY_EAGLE
 static int mdss_mdp_splash_alloc_memory(struct msm_fb_data_type *mfd,
 							uint32_t size)
 {
@@ -81,6 +82,7 @@ imap_err:
 end:
 	return rc;
 }
+#endif
 
 static void mdss_mdp_splash_free_memory(struct msm_fb_data_type *mfd)
 {
@@ -105,6 +107,7 @@ static void mdss_mdp_splash_free_memory(struct msm_fb_data_type *mfd)
 	sinfo->splash_buffer = NULL;
 }
 
+#ifndef CONFIG_MACH_SONY_EAGLE
 static int mdss_mdp_splash_iommu_attach(struct msm_fb_data_type *mfd)
 {
 	struct iommu_domain *domain;
@@ -151,6 +154,7 @@ static int mdss_mdp_splash_iommu_attach(struct msm_fb_data_type *mfd)
 
 	return rc;
 }
+#endif
 
 static void mdss_mdp_splash_unmap_splash_mem(struct msm_fb_data_type *mfd)
 {
@@ -252,6 +256,7 @@ end:
 	return rc;
 }
 
+#ifndef CONFIG_MACH_SONY_EAGLE
 static struct mdss_mdp_pipe *mdss_mdp_splash_get_pipe(
 					struct msm_fb_data_type *mfd,
 					struct mdp_overlay *req)
@@ -388,9 +393,13 @@ end:
 	mutex_unlock(&mdp5_data->ov_lock);
 	return ret;
 }
+#endif
 
 static int mdss_mdp_display_splash_image(struct msm_fb_data_type *mfd)
 {
+#ifdef CONFIG_MACH_SONY_EAGLE
+	return 0;
+#else
 	int rc = 0;
 	struct fb_info *fbi;
 	uint32_t image_len = SPLASH_IMAGE_WIDTH * SPLASH_IMAGE_HEIGHT
@@ -444,6 +453,7 @@ static int mdss_mdp_display_splash_image(struct msm_fb_data_type *mfd)
 		sinfo->splash_pipe_allocated = true;
 end:
 	return rc;
+#endif
 }
 
 static int mdss_mdp_splash_ctl_cb(struct notifier_block *self,
