@@ -142,16 +142,10 @@ static void run_boost_migration(unsigned int cpu)
 	unsigned long flags;
 	unsigned int req_freq;
 
-	while(1) {
-		wait_event(s->sync_wq, s->pending || kthread_should_stop());
-
-		if (kthread_should_stop())
-			break;
-
-		spin_lock_irqsave(&s->lock, flags);
-		s->pending = false;
-		src_cpu = s->src_cpu;
-		spin_unlock_irqrestore(&s->lock, flags);
+	spin_lock_irqsave(&s->lock, flags);
+	s->pending = false;
+	src_cpu = s->src_cpu;
+	spin_unlock_irqrestore(&s->lock, flags);
 
 	ret = cpufreq_get_policy(&src_policy, src_cpu);
 	if (ret)
