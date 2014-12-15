@@ -176,8 +176,6 @@ static struct dsi_cmd_desc dcs_read_cmd = {
 	dcs_cmd
 };
 
-u32 mdss_dsi_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl, char cmd0,
-			char cmd1, void (*fxn)(int), char *rbuf, int len)
 static char dcs_cmd_DA[2] = {0xDA, 0x00}; /* DTYPE_DCS_READ */
 static struct dsi_cmd_desc dcs_read_cmd_DA = {
 	{DTYPE_DCS_READ, 1, 0, 1, 20, sizeof(dcs_cmd_DA)},
@@ -356,6 +354,7 @@ static int mdss_dsi_panel_reset_seq(struct mdss_panel_data *pdata, int enable)
 				pw_seq->disp_en_pre * 1000 + 100);
 	if (gpio_is_valid(ctrl_pdata->disp_en_gpio))
 		gpio_set_value(ctrl_pdata->disp_en_gpio, enable);
+
 	if (pw_seq->disp_en_post)
 		usleep_range(pw_seq->disp_en_post * 1000,
 				pw_seq->disp_en_post * 1000 + 100);
@@ -365,8 +364,6 @@ static int mdss_dsi_panel_reset_seq(struct mdss_panel_data *pdata, int enable)
 		else if (pinfo->mode_gpio_state == MODE_GPIO_LOW)
 			gpio_set_value(ctrl_pdata->mode_gpio, 0);
 	}
-	mdss_dsi_panel_set_gpio_seq(ctrl_pdata->rst_gpio,
-		pw_seq->seq_num, pw_seq->rst_seq);
 
 	if (alt_panelid_cmd)
 	{
@@ -1662,7 +1659,7 @@ static void get_uv_data(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 
 	mdss_dsi_cmd_mdp_busy(ctrl_pdata);
 	mdss_bus_bandwidth_ctrl(1);
-	mdss_dsi_clk_ctrl(ctrl_pdata, 1);
+	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 1);
 	for (i = 0; i < ctrl_pdata->spec_pdata->uv_read_cmds.cmd_cnt; i++) {
 		if (short_response)
 			mdss_dsi_cmds_rx(ctrl_pdata, cmds, 0);
@@ -1672,7 +1669,7 @@ static void get_uv_data(struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 		pos += len;
 		cmds++;
 	}
-	mdss_dsi_clk_ctrl(ctrl_pdata, 0);
+	mdss_dsi_clk_ctrl(ctrl_pdata, DSI_ALL_CLKS, 0);
 	mdss_bus_bandwidth_ctrl(0);
 	conv_uv_data(buf, param_type, u_data, v_data);
 }
@@ -2827,6 +2824,7 @@ int mdss_dsi_panel_init(struct device_node *node,
 	struct platform_device *ctrl_pdev = NULL;
 	bool cont_splash_enabled;
 	bool partial_update_enabled;
+	
 	struct mdss_panel_specific_pdata *spec_pdata = NULL;
 
 	dev_set_name(&virtdev, "%s", path_name);
