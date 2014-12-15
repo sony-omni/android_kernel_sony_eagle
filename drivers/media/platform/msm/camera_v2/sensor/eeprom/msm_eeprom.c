@@ -1051,9 +1051,12 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
 		pr_err("%s read_eeprom_memory failed\n", __func__);
 		goto power_down;
 	}
+	for (j = 0; j < e_ctrl->cal_data.num_data; j++)
+		CDBG("memory_data[%d] = 0x%X\n", j,
+		     e_ctrl->cal_data.mapdata[j]);
+
+	e_ctrl->is_supported |= msm_eeprom_match_crc(&e_ctrl->cal_data);
 		pr_err("%s line %d\n", __func__, __LINE__);
-	for (j = 0; j < e_ctrl->num_bytes; j++)
-		CDBG("memory_data[%d] = 0x%X\n", j, e_ctrl->memory_data[j]);
 #ifdef CONFIG_MACH_SONY_EAGLE
                 infinity_dac_t=(uint16_t)(e_ctrl->cal_data.mapdata[0xD0] << 8) |
                   e_ctrl->cal_data.mapdata[0xD1];
@@ -1075,6 +1078,7 @@ static int msm_eeprom_platform_probe(struct platform_device *pdev)
                   e_ctrl->cal_data.mapdata[0xD3];
                 pr_err("AF infinity_dac=0x%X, macro_dac=0x%X, starting_dac=0x%X\n",infinity_dac_t,macro_dac_t,starting_dac_t);
                 pr_err("Camera eeprom 2st LI005, GC006\n");
+	}
 #endif
 
 	rc = msm_camera_power_down(power_info, e_ctrl->eeprom_device_type,

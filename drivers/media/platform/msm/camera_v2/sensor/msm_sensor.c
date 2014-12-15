@@ -491,11 +491,12 @@ int msm_sensor_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 
 int msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 {
-	int32_t index = 0;
+	int rc = 0;
+	uint16_t chipid = 0;
+	struct msm_camera_i2c_client *sensor_i2c_client;
+	struct msm_camera_slave_info *slave_info;
+	const char *sensor_name;
 	struct msm_sensor_power_setting_array *power_setting_array = NULL;
-	struct msm_sensor_power_setting *power_setting = NULL;
-	struct msm_camera_sensor_board_info *data = s_ctrl->sensordata;
-	s_ctrl->stop_setting_valid = 0;
 
 	CDBG("%s:%d\n", __func__, __LINE__);
 	power_setting_array = &s_ctrl->power_setting_array;
