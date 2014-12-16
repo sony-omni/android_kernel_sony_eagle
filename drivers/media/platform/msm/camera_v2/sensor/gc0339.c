@@ -398,9 +398,6 @@ power_up_failed:
 int32_t gc0339_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 {
 	int32_t index = 0;
-#ifdef CONFIG_MACH_SONY_EAGLE
-	int32_t gpiotestnum = 0;
-#endif
 	struct msm_sensor_power_setting_array *power_setting_array = NULL;
 	struct msm_sensor_power_setting *power_setting = NULL;
 	struct msm_camera_sensor_board_info *data = s_ctrl->sensordata;
@@ -452,28 +449,12 @@ int32_t gc0339_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 					SENSOR_GPIO_MAX);
 				continue;
 			}
-#ifdef CONFIG_MACH_SONY_EAGLE
-			gpiotestnum = gpio_conf->gpio_num_info->gpio_num
-					[power_setting->seq_val];
-#endif
 			if (gpio_conf->gpio_num_info->gpio_num
 				[power_setting->seq_val])
-#ifdef CONFIG_MACH_SONY_EAGLE
-				{
-				if((gpiotestnum == 69) && (gpio69_count == 2)){
-					pr_err("[VY5X][CTS]Avoid main camera preview fail in CTS\n");
-				}
-				else {
-#endif
 				gpio_set_value_cansleep(
 					gpio_conf->gpio_num_info->gpio_num
 					[power_setting->seq_val],
 					GPIOF_OUT_INIT_LOW);
-#ifdef CONFIG_MACH_SONY_EAGLE
-				}
-
-			}
-#endif
 			break;
 		case SENSOR_VREG:
 			if (power_setting->seq_val >= CAM_VREG_MAX) {

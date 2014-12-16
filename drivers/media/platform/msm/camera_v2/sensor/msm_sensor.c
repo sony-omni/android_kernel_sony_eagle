@@ -428,11 +428,6 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 	struct msm_camera_power_ctrl_t *power_info;
 	enum msm_camera_device_type_t sensor_device_type;
 	struct msm_camera_i2c_client *sensor_i2c_client;
-#ifdef CONFIG_MACH_SONY_EAGLE
-        int32_t gpiotestnum = 0;
-        struct msm_sensor_power_setting *pd = NULL;
-	struct msm_camera_gpio_conf *gpio_conf = NULL;
-#endif
 	if (!s_ctrl) {
 		pr_err("%s:%d failed: s_ctrl %p\n",
 			__func__, __LINE__, s_ctrl);
@@ -448,18 +443,6 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 			__func__, __LINE__, power_info, sensor_i2c_client);
 		return -EINVAL;
 	}
-#ifdef CONFIG_MACH_SONY_EAGLE
-                        gpiotestnum = gpio_conf->gpio_num_info->gpio_num
-                                        [pd->seq_val];
-                        if((gpiotestnum == 69) && (gpio69_count == 2)){
-                                CDBG("[VY5X][CTS]Avoid sub camera preview fail in CTS\n");
-                        }
-                        else {
-                        gpio_set_value_cansleep(
-                                gpio_conf->gpio_num_info->gpio_num
-                                [pd->seq_val], GPIOF_OUT_INIT_LOW);
-                        }
-#endif
 	return msm_camera_power_down(power_info, sensor_device_type,
 		sensor_i2c_client);
 }
