@@ -54,8 +54,11 @@
 #include <mach/msm_memtypes.h>
 
 #include "mdss_fb.h"
+<<<<<<< HEAD
 #include "mdss_mdp.h"
 #include "mdss_dsi.h"
+=======
+>>>>>>> AU_LINUX_ANDROID_LNX.LA.3.5.2.2_RB1.04.04.04.087.034
 #include "mdss_mdp_splash_logo.h"
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
