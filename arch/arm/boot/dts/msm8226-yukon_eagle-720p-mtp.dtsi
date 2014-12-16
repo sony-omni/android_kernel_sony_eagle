@@ -347,16 +347,6 @@
 
 &pm8226_chg {
 	qcom,battery-data = <&mtp_batterydata>;
-	qcom,vddmax-mv = <4210>;
-	qcom,vddsafe-mv = <4250>;
-	qcom,vinmin-mv = <4200>;
-	qcom,thermal-mitigation = <1500 200 100 0>;
-	qcom,warm-bat-decidegc = <450>;
-	qcom,ibatmax-warm-ma = <400>;
-	qcom,warm-bat-mv = <4000>;
-	qcom,cool-bat-decidegc = <50>;
-	qcom,ibatmax-cool-ma = <0>;
-	qcom,cool-bat-mv = <4000>;
 };
 
 &slim_msm {
