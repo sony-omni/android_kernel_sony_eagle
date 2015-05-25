@@ -193,7 +193,7 @@ static struct kionix_accel_platform_data kionix_accel_pdata = {
     .min_interval = 5,
     .poll_interval = 200,
     .accel_direction = 1,
-    .accel_irq_use_drdy = 1,	
+    .accel_irq_use_drdy = 0,
     .accel_res = KIONIX_ACCEL_RES_12BIT,
     .accel_g_range = KIONIX_ACCEL_G_2G,
 };
@@ -934,7 +934,7 @@ static void kionix_accel_grp4_report_accel_data(struct kionix_accel_driver *acce
 
 		if(			(abs(raw[0]) < Detection_range)  
 				&&	(abs(raw[1]) < Detection_range)	
-				&&	(abs((abs(raw[2])- Sensitivity_def))  < ((Detection_range)+ 154)))		// 154 = 1024*15% 
+				&&	(abs((abs(raw[2])- Sensitivity_def))  < (553)))		// 553 = 1024*54%// 154 = 1024*15% 
 		  {
 			//k printk("KXTJ2 Calibration Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
 			
@@ -976,7 +976,7 @@ static void kionix_accel_grp4_report_accel_data(struct kionix_accel_driver *acce
 				// printk("KXTJ2 start Z compensation Z_AVG Max Min,%d,%d,%d\n",(temp_zsum / BUF_RANGE),Wave_Max,Wave_Min);
 			}
 		}
-		//else if(abs((abs(raw[2])- Sensitivity_def))  > ((Detection_range)+ 154))
+		//else if(abs((abs(raw[2])- Sensitivity_def))  > (553))
 		//{
 		//	printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
 		//}

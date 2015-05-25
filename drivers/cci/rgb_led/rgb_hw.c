@@ -21,7 +21,7 @@ static void _dumpReg(void) {
     Ftr();
 }
 
-int hw_getReg(const unsigned int REG){
+int hw_getReg(const int REG){
 	Fin();
 	if (REG<0 || REG>8) {
 		Ftr("No such reg:%d", (unsigned int)REG);
@@ -72,11 +72,13 @@ int hw_requestGPIO(const rgb_chip_layout *layout) {
 #endif
 
 int hw_sendData(
-		const unsigned int  REG,
-		const unsigned char data) {
+		const int  REG,
+		const unsigned char data_) {
 	unsigned long int_flags;
 
 	struct timeval tv1,tv2;
+	unsigned char data = data_;
+
 	Fin();
 	if (REG<0 || REG>8) {
 		Ftr();
@@ -84,6 +86,13 @@ int hw_sendData(
 	}
 
 	Ftr(" echo %d > %d", data, REG);
+
+
+	if (REG == 0) {
+		// 1110 0111
+		data &= 0xe7;
+		// To disable unstable flags, vendor suggests it.
+	}
 
 	do_gettimeofday(&tv1);
 	spin_lock_irqsave(&my_lock, int_flags);

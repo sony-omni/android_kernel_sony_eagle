@@ -122,9 +122,6 @@
 			reg = <0x0f>;
 			vdd-supply = <&pm8226_l19>;
 			vddio-supply = <&pm8226_lvs1>;
-			interrupt-parent = <&msmgpio>;
-			interrupts = <49 0x2>;
-			int-gpio = <&msmgpio 49 0x00>;
 		};
 		bma250e@19 {
 			compatible = "qcom,bma250e";

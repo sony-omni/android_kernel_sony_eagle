@@ -161,7 +161,9 @@ enum DATATYPE{
 	TYPE_MAX,
 };
 // TODO: Need to chage shipping version when F/W changed.
-static u16 shipping_version =0x0600;
+#define FW_VY58_59 0x0A00
+#define FW_VY52_55 0x0600
+static u16 shipping_version = FW_VY52_55;
 
 static struct raw_data_range ftm_raw_data[TOTAL_SUN] = {
 	{18, 5, 43, 14, 131, -324, 15, -15},      // main source(truly)
@@ -5453,7 +5455,7 @@ static int cyttsp4_core_probe(struct cyttsp4_core *core)
 //	dev_dbg(dev, "%s: debug on\n", __func__);
 	dev_vdbg(dev, "%s: verbose debug on\n", __func__);
 
-    shipping_version = (get_cci_project_id() == CCI_PROJECTID_VY58_59)?0x0800:0x0600;
+    shipping_version = (get_cci_project_id() == CCI_PROJECTID_VY58_59)?FW_VY58_59:FW_VY52_55;
 
 	if (pdata == NULL) {
 		dev_err(dev, "%s: Missing platform data\n", __func__);

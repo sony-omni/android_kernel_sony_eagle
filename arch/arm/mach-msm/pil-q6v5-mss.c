@@ -237,10 +237,11 @@ static void mss_subsys_crash_info(struct work_struct *work)
 	snprintf(ntc_time, 21,
 		"_%04d-%02d-%02d_%02d-%02d-%02d", mss_t.year,
 		mss_t.month, mss_t.monthday, mss_t.hour, mss_t.minute, mss_t.second);
-
+        /**/
 	//spell crash info file name
 	snprintf(s_filename, 52,
-		"/sdcard/ramdump/modem_crash%s.log",ntc_time );
+		"/data/media/0/ramdump/modem_crash%s.log",ntc_time );
+        /**/
 
 	modem_filep=filp_open(s_filename, O_RDWR | O_CREAT, 0777);
 	if(IS_ERR(modem_filep))

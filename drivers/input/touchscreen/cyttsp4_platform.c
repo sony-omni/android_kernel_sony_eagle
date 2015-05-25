@@ -36,6 +36,7 @@
 
 #ifdef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP4_PLATFORM_FW_UPGRADE
 #include "cyttsp4_img.h"
+#include "cyttsp4_img_vy58.h"
 static struct cyttsp4_touch_firmware cyttsp4_firmware = {
 	.img = cyttsp4_img,
 	.size = ARRAY_SIZE(cyttsp4_img),
@@ -62,6 +63,7 @@ static struct cyttsp4_touch_firmware cyttsp4_firmware = {
 //#ifdef CONFIG_TOUCHSCREEN_CYPRESS_CYTTSP4_PLATFORM_TTCONFIG_UPGRADE
 /* [Optical][Touch] Implement FW upgrade, 20130808, Del End */
 #include "cyttsp4_params.h"
+#include "cyttsp4_params_vy58.h"
 static struct touch_settings cyttsp4_sett_param_regs = {
 	.data = (uint8_t *)&cyttsp4_param_regs[0],
 	.size = ARRAY_SIZE(cyttsp4_param_regs),

@@ -15,10 +15,10 @@ int hw_freeGPIO(void);
 
 int hw_wakeup(void);
 int hw_sendData(
-	const unsigned int REGISTER,  // addr: 0~6
+	const int REGISTER,  // addr: 0~6
 	const unsigned char data);
 
-int hw_getReg(const unsigned int REGISTER);
+int hw_getReg(const int REGISTER);
 
 int hw_trySuspend(void);
 int hw_resume(void);

@@ -278,9 +278,7 @@ static void msm_power_off(void)
 	__raw_writel(CONFIG_WARMBOOT_NONE, restart_reason);
 #ifdef CONFIG_CCI_KLOG	
 	*unknowflag = 0;
-#ifdef #ifdef CONFIG_CCI_KLOG
 	*backupcrashflag = 0;
-#endif
 #endif
 	mb();
 	/* MSM initiated power off, lower ps_hold */

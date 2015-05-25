@@ -39,7 +39,7 @@ void showFuncLineArgs(
     const unsigned long LINE_NUM,
     const char *FUNC_N_FORMAT, ...);
 
-#if 1
+#if 0
 #define Fin(...) do {\
     showFinCallerFuncArgs(   __VA_NARG__(__VA_ARGS__), \
         __builtin_return_address(0),\
