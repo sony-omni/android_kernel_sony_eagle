@@ -196,6 +196,7 @@ ifdef CONFIG_MSM_SUBSYSTEM_RESTART
 endif
 obj-$(CONFIG_MSM_SYSMON_COMM) += sysmon.o
 
+obj-$(CONFIG_CCI_HARDWARE_ID) += cci_hw_id.o
 #obj-$(CONFIG_CPU_IDLE) += cpuidle.o
 
 ifdef CONFIG_MSM_CAMERA_V4L2
@@ -383,6 +384,7 @@ obj-$(CONFIG_MSM_RTB) += msm_rtb.o
 obj-$(CONFIG_MSM_CACHE_ERP) += cache_erp.o
 obj-$(CONFIG_MSM_EBI_ERP) += ebi_erp.o
 obj-$(CONFIG_MSM_CACHE_DUMP) += msm_cache_dump.o
+obj-$(CONFIG_SONY_SSM) += sony_ssm.o
 
 obj-$(CONFIG_MSM_HSIC_SYSMON) += hsic_sysmon.o
 obj-$(CONFIG_MSM_HSIC_SYSMON_TEST) += hsic_sysmon_test.o
